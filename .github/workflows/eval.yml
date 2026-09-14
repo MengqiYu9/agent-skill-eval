@@ -18,7 +18,11 @@ jobs:
       - name: unit tests
         run: python -m pytest -q
       - name: validate suite + skills (no model calls)
-        run: python -m skilleval validate --suite tasks --skill skills/structured-digest/v1 --skill skills/structured-digest/v2
+        run: |
+          python -m skilleval validate --suite tasks \
+            --skill skills/structured-digest/v1 --skill skills/structured-digest/v2
+          python -m skilleval validate --suite suites/doc-to-actions \
+            --skill skills/doc-to-actions/v1 --skill skills/doc-to-actions/v2
       - name: deterministic gate against the committed baseline
         run: |
           python -m skilleval run \

@@ -87,6 +87,35 @@ Raw reports: [`examples/report-live-8192.md`](examples/report-live-8192.md) ·
 [offline mock run](examples/report-offline-mock.md) ·
 [the truncation run that looked like a regression](examples/report-live-2048-truncated.md).
 
+## Case study: a real shipped skill, not a demo
+
+The suite above is a demo I wrote to exercise the harness. `suites/doc-to-actions/` is the
+point of the repo: it evaluates **`document-to-action-items`**, a skill that is actually
+shipped and used, on 4 synthetic Chinese contract / minutes / notice documents, then
+measures one targeted edit.
+
+| arm | check pass | judge mean | tokens (in/out) | mean latency |
+| --- | --- | --- | --- | --- |
+| `doc-to-actions/v1` — as shipped | 0.59 (20/34) | 3.64 | 3 119 / 16 285 | 20.33 s |
+| `doc-to-actions/v2` — + output contract | **1.00 (34/34)** | **4.88** | 3 547 / 28 407 | 31.06 s |
+
+What came out of it is more interesting than the delta:
+
+- v1's prose extraction is *good* (5.0 on actionability, modality, uncertainty) but it
+  specifies no output format, so 0/4 on `json_valid` and 0/4 on `contract_paths`.
+- The judge caught what the checks could not: v1 **converted "30 日内" into a concrete date**
+  (`2026-04-09`) in one task — precisely what the skill forbids — and softened a genuine
+  cross-clause inconsistency instead of flagging it.
+- v2 fixed all of that but **lost `uncertainty` 5.0 → 3.0**: its contract had a slot for
+  conflicts and none for "unknown inputs". That regression is only visible per-criterion,
+  and it defines v3.
+- One check was itself wrong: a literal date match failed a correctly reformatted
+  `2026-05-20`. Fixed to a format-tolerant regex — a suite that only fails the other arm is
+  usually measuring its own assumptions.
+
+Full narrative, including the token-cap truncation that struck this suite too:
+[`docs/CASE-STUDY-doc-to-actions.md`](docs/CASE-STUDY-doc-to-actions.md).
+
 ## Task format
 
 ```yaml
@@ -148,11 +177,15 @@ src/skilleval/
   suite.py     skill + task loading, one run = skill × tasks, aggregation
   report.py    markdown/JSON rendering, baseline diff, regression verdict
   cli.py       run / validate / init
-skills/structured-digest/{v1,v2}/SKILL.md   the skill under test (v1 → v2 is the diff)
-tasks/digest-0*.yaml                        the suite
+skills/structured-digest/{v1,v2}/SKILL.md   starter example: loose prose → strict contract
+tasks/digest-0*.yaml                        starter suite (4 tasks, 12 checks)
+skills/doc-to-actions/{v1,v2}/SKILL.md      the real thing: a shipped skill vs its strict version
+suites/doc-to-actions/*.yaml                its suite (4 synthetic documents, 14 checks)
 tests/                                      27 offline tests
 examples/                                   committed reports + mock fixtures + baseline
 docs/DESIGN-NOTES.md                        what broke for real, with numbers
+docs/CASE-STUDY-doc-to-actions.md           before/after on a real skill, including what still fails
+docs/notes/                                 longer write-ups
 ```
 
 ## Adding your own
