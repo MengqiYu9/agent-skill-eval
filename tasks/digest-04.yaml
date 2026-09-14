@@ -1,0 +1,44 @@
+tasks:
+  - id: digest-04
+    notes: 长材料 + 无责任方的行动项：考验压缩率与"不替人认领"
+    input: |
+      请把以下材料整理成结构化结论。
+
+      === 材料开始 ===
+      编号 HY-2026-021｜项目周例会纪要（合成示例，2026-03-13）
+      议题一 进度：一期 12 个点位已上线 9 个，剩余 3 个因等交换机到货顺延；到货日期供应商口头答复"下周"，未给书面确认。
+      议题二 质量：上线点位近 7 天平均每天 2.3 次误报，集中在夜间光照不足时段；在场人员确认与镜头遮挡有关，未做参数调整。
+      议题三 成本：本月云侧推理费用较上月增加 18%，原因未查清，会上提出可能是新增点位带来的，但没有人核对过账单明细。
+      议题四 协作：现场施工队与运维班组的接口人不同，出现两次到场无人对接；会上未指定统一接口人。
+      议题五 制度：验收标准仍沿用上一版草案，与会人员对此没有提出异议，也未确认最终版本。
+      其他：下次例会时间暂定 3 月 20 日，会议室待定。
+      === 材料结束 ===
+    checks:
+      - id: json_valid
+        type: json_valid
+      - id: contract_paths
+        type: json_path
+        paths: [summary, key_points, risks, next_actions, sources]
+      - id: cites_sources
+        type: regex_all
+        pattern: '\[S\d+\]'
+        min_matches: 3
+      - id: no_claimed_owner
+        type: regex_none
+        pattern: '(负责人|责任人)[：:]\s*[^\s，。]{1,4}(?=\s|，|。|$)'
+      - id: length_cap
+        type: max_chars
+        value: 1800
+      - id: min_points
+        type: regex_all
+        pattern: '"key_points"'
+        min_matches: 1
+    rubric:
+      - id: grounding
+        desc: 成本与误报的原因只复述会上说法，没有给出材料里没有的结论
+      - id: compression
+        desc: 五个议题被压缩进要点且没丢关键数字（9/12、2.3 次、18%）
+      - id: actionability
+        desc: 行动项里"未指定接口人""版本未确认""账单未核对"被显式列为待办，而不是略过
+      - id: format_contract
+        desc: 输出是纯 JSON、字段齐全、sources 至少 3 条

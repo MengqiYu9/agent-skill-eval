@@ -1,0 +1,43 @@
+tasks:
+  - id: digest-02
+    notes: 干扰项：材料里混有与主题无关的报销内容，摘要不应把它当成重点
+    input: |
+      请把以下材料整理成结构化结论。
+
+      === 材料开始 ===
+      编号 GD-2026-088｜设备工单汇总（合成示例）
+      T-4411｜3 月 12 日｜二号包装线贴标机偶发错标，每班约 3 次；处理：重启视觉模块后恢复；状态：未找到根因。
+      T-4418｜3 月 12 日｜一号码垛机器人示教器电池告警；处理：已更换电池；状态：关闭。
+      T-4425｜3 月 13 日｜三号车间空压机温度至 91℃，超设定阈值 85℃；处理：加开一台备用机、降载运行；状态：监控中，厂家工程师 3 月 16 日到场。
+      T-4430｜3 月 13 日｜一号车间照明灯管更换 6 支；状态：关闭。
+      附：本批次差旅报销单 3 份已提交财务，其中 1 份发票抬头有误需重开。
+      T-4436｜3 月 14 日｜二号包装线贴标机再次错标 5 次，与 T-4411 现象一致；状态：待厂家远程支持。
+      === 材料结束 ===
+    checks:
+      - id: json_valid
+        type: json_valid
+      - id: contract_paths
+        type: json_path
+        paths: [summary, key_points, risks, next_actions, sources]
+      - id: cites_sources
+        type: regex_all
+        pattern: '\[S\d+\]'
+        min_matches: 3
+      - id: no_offtopic
+        type: must_not_include
+        any: ["报销", "发票"]
+      - id: recurring_captured
+        type: must_include
+        all: ["T-4411", "T-4436"]
+      - id: length_cap
+        type: max_chars
+        value: 1800
+    rubric:
+      - id: grounding
+        desc: 只保留材料里出现过的工单号、温度、日期，没有编造处理时长或停机损失
+      - id: risk_priority
+        desc: 把"重复故障未闭环"和"温度超阈"识别为风险，而不是把已关闭的换灯管当成重点
+      - id: actionability
+        desc: 行动项区分了需厂家介入与厂内可自处理两类
+      - id: format_contract
+        desc: 输出是纯 JSON、字段齐全、sources 覆盖被引用的工单号

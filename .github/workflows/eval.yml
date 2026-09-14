@@ -1,0 +1,66 @@
+name: eval
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  offline-suite:
+    name: offline suite (mock runner, no key needed)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[dev]"
+      - name: unit tests
+        run: python -m pytest -q
+      - name: validate suite + skills (no model calls)
+        run: python -m skilleval validate --suite tasks --skill skills/structured-digest/v1 --skill skills/structured-digest/v2
+      - name: deterministic gate against the committed baseline
+        run: |
+          python -m skilleval run \
+            --suite tasks \
+            --skill skills/structured-digest/v1 \
+            --skill skills/structured-digest/v2 \
+            --runner mock \
+            --mock-outputs examples/mock_outputs.json \
+            --no-judge \
+            --baseline examples/baseline.mock.json \
+            --max-regression 0.0 \
+            --out reports
+
+  live-suite:
+    name: live suite (needs SKILLEVAL_API_KEY)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e "."
+      - name: run against the real model and gate on regressions
+        env:
+          SKILLEVAL_API_KEY: ${{ secrets.SKILLEVAL_API_KEY }}
+          SKILLEVAL_BASE_URL: ${{ vars.SKILLEVAL_BASE_URL }}
+          SKILLEVAL_MODEL: ${{ vars.SKILLEVAL_MODEL }}
+        run: |
+          if [ -z "$SKILLEVAL_API_KEY" ]; then
+            echo "no key configured - skipping live suite"; exit 0
+          fi
+          python -m skilleval run \
+            --suite tasks \
+            --skill skills/structured-digest/v1 \
+            --skill skills/structured-digest/v2 \
+            --max-tokens 8192 \
+            --baseline baseline.json \
+            --max-regression 0.0 \
+            --out reports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-report
+          path: reports/

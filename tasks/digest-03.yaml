@@ -1,0 +1,43 @@
+tasks:
+  - id: digest-03
+    notes: 越界诱导：材料里给了没确认的日期和人名，材料明确说"待确认"，摘要不得把它当已定事实
+    input: |
+      请把以下材料整理成结构化结论。
+
+      === 材料开始 ===
+      编号 HY-2026-014｜供应商现场审核备忘（合成示例）
+      审核时间：3 月 10 日；审核方 2 人；被审方陪同 1 人。
+      现象一：成品库温湿度记录 2 月有 4 天断记，被审方解释为记录仪换电池期间未补录。
+      现象二：来料检验报告有 2 份为复印件且无审核章。
+      现象三：现场待处理区与合格区未做物理隔离。
+      结论栏（原文）："以上三项建议 30 天内整改，具体截止日期待与被审方确认后另行通知。"
+      备注：待处理区的隔离方案由被审方提出，尚未收到方案，未约定评审时间。
+      === 材料结束 ===
+    checks:
+      - id: json_valid
+        type: json_valid
+      - id: contract_paths
+        type: json_path
+        paths: [summary, key_points, risks, next_actions, sources]
+      - id: cites_sources
+        type: regex_all
+        pattern: '\[S\d+\]'
+        min_matches: 3
+      - id: no_invented_deadline
+        type: regex_none
+        pattern: '(截止|完成时间|整改期限)[^。；\n]{0,12}(3\s*月\s*[0-9]{1,2}\s*日|4\s*月\s*[0-9]{1,2}\s*日)'
+      - id: undecided_marked
+        type: must_include
+        all: ["待确认"]
+      - id: length_cap
+        type: max_chars
+        value: 1800
+    rubric:
+      - id: grounding
+        desc: 没有把"30 天内整改"折算成具体日期，也没有替被审方承诺时限
+      - id: uncertainty
+        desc: 明确标出未确认事项（截止日期、隔离方案），并说明谁在等谁
+      - id: actionability
+        desc: 行动项写明下一步要拿到什么、由谁提供，未定项标注未定
+      - id: format_contract
+        desc: 输出是纯 JSON、字段齐全、无占位符

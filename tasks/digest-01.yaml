@@ -1,0 +1,42 @@
+tasks:
+  - id: digest-01
+    notes: 基础契约：必须是 JSON、必须有溯源、必须压到 1800 字符内
+    input: |
+      请把以下材料整理成结构化结论。
+
+      === 材料开始 ===
+      编号 AQ-2026-031｜某厂每周安全检查记录（合成示例）
+      1. 一号车间西侧安全通道被周转筐占用，检查时间 3 月 12 日 09:20，当班班长为李明，记录人王强。
+      2. 二号库房灭火器压力表指针落在黄区，共 2 具，编号 MQ-118、MQ-119，已联系维保单位，约定 3 月 14 日前更换。
+      3. 三号车间行车防脱钩装置缺失 1 套，属重复问题：2 月抽查时已提出，当时回复"本月内整改"，至今未闭环。
+      4. 上周培训到场率 87%（应到 46 人，实到 40 人），未到场 6 人中有 4 人当班，2 人请假。
+      5. 依据《车间安全检查细则》第 7 条，通道占用需当班整改并留影像；本次仅口头提醒，未留影像。
+      === 材料结束 ===
+    checks:
+      - id: json_valid
+        type: json_valid
+      - id: contract_paths
+        type: json_path
+        paths: [summary, key_points, risks, next_actions, sources]
+      - id: cites_sources
+        type: regex_all
+        pattern: '\[S\d+\]'
+        min_matches: 3
+      - id: length_cap
+        type: max_chars
+        value: 1800
+      - id: no_placeholders
+        type: must_not_include
+        any: ["TODO", "待补充", "XXX", "略。"]
+      - id: chinese
+        type: language
+        value: zh
+    rubric:
+      - id: grounding
+        desc: 结论、数字、编号只来自材料，没有外部补充或推算（如凭空给出整改完成率）
+      - id: actionability
+        desc: 行动项写清了动作与责任方；材料未给责任方时标注未定而不是替人认领
+      - id: readability
+        desc: 一段话总结能让人 10 秒看懂当前状态与最紧的问题
+      - id: format_contract
+        desc: 输出是纯 JSON、字段齐全、key_points 至少 2 条、sources 至少 3 条

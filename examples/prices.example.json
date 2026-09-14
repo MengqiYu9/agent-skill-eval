@@ -1,0 +1,11 @@
+{
+  "_comment": "Optional and OFF by default: token counts are measured, prices are not guessed. Copy to prices.json, put in the real per-1M-token prices for YOUR model and endpoint, then pass --prices prices.json. The numbers below are placeholders in the right shape, not a quote.",
+  "your-model-name": {
+    "input_per_mtok": 0.0,
+    "output_per_mtok": 0.0
+  },
+  "default": {
+    "input_per_mtok": 0.0,
+    "output_per_mtok": 0.0
+  }
+}

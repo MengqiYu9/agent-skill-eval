@@ -1,0 +1,54 @@
+{
+  "structured-digest/v1": {
+    "task_pass_rate": 0.375,
+    "check_pass_rate": 0.375,
+    "judge_mean": 3.188,
+    "per_check": {
+      "json_valid": 0.0,
+      "contract_paths": 0.0,
+      "cites_sources": 0.0,
+      "length_cap": 1.0,
+      "no_placeholders": 1.0,
+      "chinese": 1.0,
+      "no_offtopic": 0.0,
+      "recurring_captured": 1.0,
+      "no_invented_deadline": 1.0,
+      "undecided_marked": 0.0,
+      "no_claimed_owner": 1.0,
+      "min_points": 0.0
+    },
+    "per_task": {
+      "digest-01": 0.5,
+      "digest-02": 0.3333333333333333,
+      "digest-03": 0.3333333333333333,
+      "digest-04": 0.3333333333333333
+    },
+    "model": "deepseek-flash"
+  },
+  "structured-digest/v2": {
+    "task_pass_rate": 0.9583,
+    "check_pass_rate": 0.9583,
+    "judge_mean": 4.562,
+    "per_check": {
+      "json_valid": 1.0,
+      "contract_paths": 1.0,
+      "cites_sources": 1.0,
+      "length_cap": 1.0,
+      "no_placeholders": 1.0,
+      "chinese": 1.0,
+      "no_offtopic": 0.0,
+      "recurring_captured": 1.0,
+      "no_invented_deadline": 1.0,
+      "undecided_marked": 1.0,
+      "no_claimed_owner": 1.0,
+      "min_points": 1.0
+    },
+    "per_task": {
+      "digest-01": 1.0,
+      "digest-02": 0.8333333333333334,
+      "digest-03": 1.0,
+      "digest-04": 1.0
+    },
+    "model": "deepseek-flash"
+  }
+}

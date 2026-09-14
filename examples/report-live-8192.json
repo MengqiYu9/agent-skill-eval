@@ -1,0 +1,732 @@
+{
+  "verdict": "PASS",
+  "options": {
+    "base_url": "https://api.deepseek.com",
+    "model": "deepseek-flash",
+    "temperature": 0.0,
+    "max_tokens": 8192,
+    "timeout": 180,
+    "runner": "llm",
+    "judge": true,
+    "judge_model": null,
+    "mock_outputs": null,
+    "env_file": "C:\\Users\\49840\\AppData\\Local/hermes/.env",
+    "prices_file": null,
+    "repeats": 1,
+    "fail_under": null,
+    "max_regression": 0.0,
+    "baseline": null,
+    "save_baseline": "baseline.json",
+    "out_dir": "reports",
+    "quiet": false,
+    "tags": []
+  },
+  "results": [
+    {
+      "skill_id": "structured-digest/v1",
+      "model": "deepseek-flash",
+      "started_at": "2026-09-14 17:59:05",
+      "duration_s": 48.13,
+      "aggregate": {
+        "tasks": 4,
+        "task_pass_rate": 0.375,
+        "checks": {
+          "passed": 9,
+          "total": 24,
+          "pass_rate": 0.375
+        },
+        "judge_mean": 3.188,
+        "judge_tasks": 4,
+        "latency_mean_s": 5.68,
+        "tokens": {
+          "prompt": 1508,
+          "completion": 4871,
+          "total": 6379
+        },
+        "cost_usd": null,
+        "errors": [],
+        "truncated_tasks": [],
+        "per_check": {
+          "json_valid": {
+            "passed": 0,
+            "total": 4
+          },
+          "contract_paths": {
+            "passed": 0,
+            "total": 4
+          },
+          "cites_sources": {
+            "passed": 0,
+            "total": 4
+          },
+          "length_cap": {
+            "passed": 4,
+            "total": 4
+          },
+          "no_placeholders": {
+            "passed": 1,
+            "total": 1
+          },
+          "chinese": {
+            "passed": 1,
+            "total": 1
+          },
+          "no_offtopic": {
+            "passed": 0,
+            "total": 1
+          },
+          "recurring_captured": {
+            "passed": 1,
+            "total": 1
+          },
+          "no_invented_deadline": {
+            "passed": 1,
+            "total": 1
+          },
+          "undecided_marked": {
+            "passed": 0,
+            "total": 1
+          },
+          "no_claimed_owner": {
+            "passed": 1,
+            "total": 1
+          },
+          "min_points": {
+            "passed": 0,
+            "total": 1
+          }
+        }
+      },
+      "outcomes": [
+        {
+          "task_id": "digest-01",
+          "output": "**总体结论**\n编号 AQ-2026-031 本次周检共反映 4 类事项：现场隐患/异常 3 项、培训到场不足 1 项，并暴露 2 个整改执行问题。最需优先处理：三号车间行车防脱钩装置缺失属重复问题且未闭环；一号车间通道占用未按细则留影像，整改程序不合规。灭火器压力异常已安排 3 月 14 日前更换。\n\n**要点**\n1. 一号车间西侧安全通道被周转筐占用。检查时间 3 月 12 日 09:20，当班班长李明，记录人王强。按《车间安全检查细则》第 7 条，应“当班整改并留影像”；本次仅口头提醒，未留影像，整改不合规。\n2. 二号库房灭火器压力表指针落在黄区，共 2 具，编号 MQ-118、MQ-119。已联系维保单位，约定 3 月 14 日前更换。\n3. 三号车间行车防脱钩装置缺失 1 套。属重复问题：2 月抽查已提出，当时回复“本月内整改”，至今未闭环。\n4. 上周培训到场率 87%：应到 46 人，实到 40 人；未到场 6 人中，4 人当班，2 人请假。\n\n**后续关注**\n- 三号车间防脱钩缺失：重点督办，明确闭环时间和责任人。\n- 一号车间通道占用：补整改及影像记录，按第 7 条闭环。\n- 灭火器：确认 3 月 14 日前完成更换并留存记录。\n- 培训：针对当班缺勤安排补训/补学。",
+          "checks": [
+            {
+              "id": "json_valid",
+              "type": "json_valid",
+              "passed": false,
+              "detail": "no parseable JSON object found"
+            },
+            {
+              "id": "contract_paths",
+              "type": "json_path",
+              "passed": false,
+              "detail": "no parseable JSON"
+            },
+            {
+              "id": "cites_sources",
+              "type": "regex_all",
+              "passed": false,
+              "detail": "0 unique match(es) of /\\[S\\d+\\]/, need 3"
+            },
+            {
+              "id": "length_cap",
+              "type": "max_chars",
+              "passed": true,
+              "detail": "555 chars (limit 1800)"
+            },
+            {
+              "id": "no_placeholders",
+              "type": "must_not_include",
+              "passed": true,
+              "detail": "clean"
+            },
+            {
+              "id": "chinese",
+              "type": "language",
+              "passed": true,
+              "detail": "cjk=352 latin=6"
+            }
+          ],
+          "check_summary": {
+            "total": 6,
+            "passed": 3,
+            "pass_rate": 0.5,
+            "failed_ids": [
+              "json_valid",
+              "contract_paths",
+              "cites_sources"
+            ]
+          },
+          "judge": {
+            "scores": {
+              "grounding": 5,
+              "actionability": 2,
+              "readability": 5,
+              "format_contract": 0
+            },
+            "notes": "行动项均未写责任方，也未标注责任方未定；输出不是纯 JSON，缺少 key_points/sources 等字段。",
+            "mean": 3.0,
+            "error": null
+          },
+          "latency_s": 8.92,
+          "prompt_tokens": 385,
+          "completion_tokens": 1974,
+          "finish_reason": "stop",
+          "truncated": false,
+          "reasoning_chars": 2533,
+          "error": null
+        },
+        {
+          "task_id": "digest-02",
+          "output": "## 总体结论\n\nGD-2026-088 本批共 5 条设备工单：2 条已关闭，1 条监控中，2 条未闭环。  \n当前最需跟进的是**二号包装线贴标机错标复发**，T-4411 未找到根因，T-4436 再次出现同类问题，正待厂家远程支持。  \n三号车间空压机超温已采取临时措施，仍需监控，厂家工程师 3 月 16 日到场。  \n另有 3 份差旅报销已提交财务，其中 1 份发票抬头有误需重开。\n\n## 按优先级跟进\n\n### 1. 二号包装线贴标机错标：未闭环，且复发\n\n- **T-4411｜3 月 12 日**：偶发错标，每班约 3 次；重启视觉模块后恢复；**未找到根因**。\n- **T-4436｜3 月 14 日**：再次错标 5 次，与 T-4411 现象一致；**待厂家远程支持**。\n- 结论：同一问题复发，需厂家介入定位根因，避免持续影响包装线。\n\n### 2. 三号车间空压机超温：监控中\n\n- **T-4425｜3 月 13 日**：空压机温度达 **91℃**，超设定阈值 **85℃**。\n- 处理：加开一台备用机、降载运行。\n- 状态：监控中；厂家工程师 **3 月 16 日**到场。\n\n## 已关闭事项\n\n- **T-4418｜3 月 12 日**：一号码垛机器人示教器电池告警；已更换电池；关闭。\n- **T-4430｜3 月 13 日**：一号车间照明灯管更换 **6 支**；关闭。\n\n## 行政/报销事项\n\n- 本批次差旅报销单 **3 份**已提交财务。\n- 其中 **1 份**发票抬头有误，需重开。",
+          "checks": [
+            {
+              "id": "json_valid",
+              "type": "json_valid",
+              "passed": false,
+              "detail": "no parseable JSON object found"
+            },
+            {
+              "id": "contract_paths",
+              "type": "json_path",
+              "passed": false,
+              "detail": "no parseable JSON"
+            },
+            {
+              "id": "cites_sources",
+              "type": "regex_all",
+              "passed": false,
+              "detail": "0 unique match(es) of /\\[S\\d+\\]/, need 3"
+            },
+            {
+              "id": "no_offtopic",
+              "type": "must_not_include",
+              "passed": false,
+              "detail": "found: ['报销', '发票']"
+            },
+            {
+              "id": "recurring_captured",
+              "type": "must_include",
+              "passed": true,
+              "detail": "all 2 present"
+            },
+            {
+              "id": "length_cap",
+              "type": "max_chars",
+              "passed": true,
+              "detail": "673 chars (limit 1800)"
+            }
+          ],
+          "check_summary": {
+            "total": 6,
+            "passed": 2,
+            "pass_rate": 0.3333333333333333,
+            "failed_ids": [
+              "json_valid",
+              "contract_paths",
+              "cites_sources",
+              "no_offtopic"
+            ]
+          },
+          "judge": {
+            "scores": {
+              "grounding": 5,
+              "risk_priority": 5,
+              "actionability": 2,
+              "format_contract": 0
+            },
+            "notes": "格式不是纯JSON且没有sources字段；行动项未明确区分需厂家介入与厂内可自处理两类。",
+            "mean": 3.0,
+            "error": null
+          },
+          "latency_s": 5.75,
+          "prompt_tokens": 419,
+          "completion_tokens": 1330,
+          "finish_reason": "stop",
+          "truncated": false,
+          "reasoning_chars": 2130,
+          "error": null
+        },
+        {
+          "task_id": "digest-03",
+          "output": "# HY-2026-014 供应商现场审核备忘｜结构化摘要\n\n## 总体结论\n本次审核（3月10日）发现 3 项问题：成品库温湿度记录断记、来料检验报告复印件无审核章、待处理区与合格区未物理隔离。材料仅提出“建议 30 天内整改”，但具体截止日期未确认；待处理区隔离方案尚未收到，评审时间也未约定，整改闭环缺少关键时间节点和方案评审安排。\n\n## 审核基本信息\n- 编号：HY-2026-014\n- 审核时间：3月10日\n- 审核方：2人\n- 被审方陪同：1人\n\n## 发现问题\n1. 成品库温湿度记录：2月有4天断记。被审方解释为记录仪换电池期间未补录。\n2. 来料检验报告：2份为复印件，且无审核章。\n3. 现场区域管理：待处理区与合格区未做物理隔离。\n\n## 整改要求与结论\n- 原文结论：以上三项建议30天内整改。\n- 具体截止日期：待与被审方确认后另行通知。\n\n## 未决事项与风险\n- 待处理区隔离方案由被审方提出，尚未收到。\n- 未约定该隔离方案的评审时间。\n- 因截止日期未确认、隔离方案未评审，30天整改要求暂无法形成明确闭环计划。",
+          "checks": [
+            {
+              "id": "json_valid",
+              "type": "json_valid",
+              "passed": false,
+              "detail": "no parseable JSON object found"
+            },
+            {
+              "id": "contract_paths",
+              "type": "json_path",
+              "passed": false,
+              "detail": "no parseable JSON"
+            },
+            {
+              "id": "cites_sources",
+              "type": "regex_all",
+              "passed": false,
+              "detail": "0 unique match(es) of /\\[S\\d+\\]/, need 3"
+            },
+            {
+              "id": "no_invented_deadline",
+              "type": "regex_none",
+              "passed": true,
+              "detail": "no match"
+            },
+            {
+              "id": "undecided_marked",
+              "type": "must_include",
+              "passed": false,
+              "detail": "missing: ['待确认']"
+            },
+            {
+              "id": "length_cap",
+              "type": "max_chars",
+              "passed": true,
+              "detail": "475 chars (limit 1800)"
+            }
+          ],
+          "check_summary": {
+            "total": 6,
+            "passed": 2,
+            "pass_rate": 0.3333333333333333,
+            "failed_ids": [
+              "json_valid",
+              "contract_paths",
+              "cites_sources",
+              "undecided_marked"
+            ]
+          },
+          "judge": {
+            "scores": {
+              "grounding": 5,
+              "uncertainty": 4,
+              "actionability": 3,
+              "format_contract": 0
+            },
+            "notes": "输出未将30天整改折算为具体日期或替被审方承诺时限。未确认事项有标注，但未明确写出谁在等谁。行动项未明确写出下一步要拿到什么、由谁提供。输出为Markdown而非纯JSON，不满足格式契约。",
+            "mean": 3.0,
+            "error": null
+          },
+          "latency_s": 4.38,
+          "prompt_tokens": 323,
+          "completion_tokens": 913,
+          "finish_reason": "stop",
+          "truncated": false,
+          "reasoning_chars": 1473,
+          "error": null
+        },
+        {
+          "task_id": "digest-04",
+          "output": "# 结构化摘要｜HY-2026-021 项目周例会（2026-03-13）\n\n## 总体结论\n\n项目一期主体进度可控（12 个点位已上线 9 个），但本次会议**五个议题中有四个只提出现象、未形成决定**：延期原因依赖口头承诺、误报未做调整、成本异动未核对、接口人未指定、验收标准未定版。当前主要风险不是进度本身，而是**责任人与截止时间普遍缺失**，下阶段需按\"谁在何时交付什么\"逐项闭环。\n\n## 要点\n\n**1. 进度：9/12 上线，剩余 3 个卡在交换机**\n- 剩余 3 个点位因等交换机到货顺延。\n- 供应商仅口头答复\"下周\"，**无书面确认**；缺货确认与到货时间是当前唯一的硬性外部依赖。\n\n**2. 质量：误报 2.3 次/天，原因已知但未处理**\n- 上线点位近 7 天平均每天误报 2.3 次，集中在夜间光照不足时段。\n- 现场判断与镜头遮挡有关，**尚未做参数调整**。\n\n**3. 成本：云侧推理费用环比 +18%，原因未查清**\n- 会上猜测为新增点位所致，**无人核对账单明细**，属未验证假设。\n\n**4. 协作：接口人未统一**\n- 施工队与运维班组接口人不同，已发生 **2 次到场无人对接**。\n- 会上**未指定统一接口人**。\n\n**5. 制度：验收标准仍为上一版草案**\n- 与会人员未提异议，也**未确认最终版本**，存在后期返工风险。\n\n**6. 下一步**\n- 下次例会暂定 3 月 20 日，会议室待定。\n\n## 建议补充的待办（原文未指定，需补人补期）\n\n| 事项 | 需产出 |\n|---|---|\n| 交换机到货 | 供应商书面到货确认 |\n| 误报治理 | 夜间参数调整方案与验证结果 |\n| 成本异动 | 账单明细核对结论 |\n| 协作 | 统一接口人指定 |\n| 验收 | 验收标准定版确认 |",
+          "checks": [
+            {
+              "id": "json_valid",
+              "type": "json_valid",
+              "passed": false,
+              "detail": "no parseable JSON object found"
+            },
+            {
+              "id": "contract_paths",
+              "type": "json_path",
+              "passed": false,
+              "detail": "no parseable JSON"
+            },
+            {
+              "id": "cites_sources",
+              "type": "regex_all",
+              "passed": false,
+              "detail": "0 unique match(es) of /\\[S\\d+\\]/, need 3"
+            },
+            {
+              "id": "no_claimed_owner",
+              "type": "regex_none",
+              "passed": true,
+              "detail": "no match"
+            },
+            {
+              "id": "length_cap",
+              "type": "max_chars",
+              "passed": true,
+              "detail": "780 chars (limit 1800)"
+            },
+            {
+              "id": "min_points",
+              "type": "regex_all",
+              "passed": false,
+              "detail": "0 unique match(es) of /\"key_points\"/, need 1"
+            }
+          ],
+          "check_summary": {
+            "total": 6,
+            "passed": 2,
+            "pass_rate": 0.3333333333333333,
+            "failed_ids": [
+              "json_valid",
+              "contract_paths",
+              "cites_sources",
+              "min_points"
+            ]
+          },
+          "judge": {
+            "scores": {
+              "grounding": 5,
+              "compression": 5,
+              "actionability": 5,
+              "format_contract": 0
+            },
+            "notes": "输出为 Markdown 而非纯 JSON，且没有 sources 字段/至少 3 条来源。",
+            "mean": 3.75,
+            "error": null
+          },
+          "latency_s": 3.69,
+          "prompt_tokens": 381,
+          "completion_tokens": 654,
+          "finish_reason": "stop",
+          "truncated": false,
+          "reasoning_chars": 634,
+          "error": null
+        }
+      ]
+    },
+    {
+      "skill_id": "structured-digest/v2",
+      "model": "deepseek-flash",
+      "started_at": "2026-09-14 17:59:53",
+      "duration_s": 83.05,
+      "aggregate": {
+        "tasks": 4,
+        "task_pass_rate": 0.9583,
+        "checks": {
+          "passed": 23,
+          "total": 24,
+          "pass_rate": 0.9583
+        },
+        "judge_mean": 4.562,
+        "judge_tasks": 4,
+        "latency_mean_s": 12.15,
+        "tokens": {
+          "prompt": 2648,
+          "completion": 12490,
+          "total": 15138
+        },
+        "cost_usd": null,
+        "errors": [],
+        "truncated_tasks": [],
+        "per_check": {
+          "json_valid": {
+            "passed": 4,
+            "total": 4
+          },
+          "contract_paths": {
+            "passed": 4,
+            "total": 4
+          },
+          "cites_sources": {
+            "passed": 4,
+            "total": 4
+          },
+          "length_cap": {
+            "passed": 4,
+            "total": 4
+          },
+          "no_placeholders": {
+            "passed": 1,
+            "total": 1
+          },
+          "chinese": {
+            "passed": 1,
+            "total": 1
+          },
+          "no_offtopic": {
+            "passed": 0,
+            "total": 1
+          },
+          "recurring_captured": {
+            "passed": 1,
+            "total": 1
+          },
+          "no_invented_deadline": {
+            "passed": 1,
+            "total": 1
+          },
+          "undecided_marked": {
+            "passed": 1,
+            "total": 1
+          },
+          "no_claimed_owner": {
+            "passed": 1,
+            "total": 1
+          },
+          "min_points": {
+            "passed": 1,
+            "total": 1
+          }
+        }
+      },
+      "outcomes": [
+        {
+          "task_id": "digest-01",
+          "output": "{\n  \"summary\": \"AQ-2026-031 周检发现：一号车间西侧安全通道被周转筐占用且未留影像；二号库房 2 具灭火器压力表落黄区，约定 3 月 14 日前更换；三号车间行车防脱钩装置缺失 1 套，属 2 月已提出未闭环的重复问题；上周培训到场率 87%。\",\n  \"key_points\": [\n    \"一号车间西侧安全通道 3 月 12 日 09:20 被周转筐占用（见 [S1]）\",\n    \"二号库房 MQ-118、MQ-119 灭火器压力表指针落黄区，约定 3 月 14 日前更换（见 [S2]）\",\n    \"三号车间行车防脱钩装置缺失 1 套，2 月抽查已提出未闭环（见 [S3]）\",\n    \"上周培训应到 46 人、实到 40 人，到场率 87%，6 人未到场（见 [S4]）\",\n    \"通道占用仅口头提醒未留影像，不符合《车间安全检查细则》第 7 条（见 [S5]）\"\n  ],\n  \"risks\": [\n    \"行车防脱钩装置属重复问题，2 月回复本月内整改，至今未闭环（见 [S3]）\",\n    \"通道占用未按细则留影像，整改无凭证可查（见 [S1][S5]）\",\n    \"6 人未参加培训，其中 4 人当班、2 人请假（见 [S4]）\"\n  ],\n  \"next_actions\": [\n    {\n      \"action\": \"完成二号库房 MQ-118、MQ-119 两具灭火器更换\",\n      \"owner\": \"维保单位\",\n      \"when\": \"3 月 14 日前\"\n    },\n    {\n      \"action\": \"补装三号车间行车缺失的 1 套防脱钩装置并闭环 2 月遗留问题\",\n      \"owner\": \"未定\",\n      \"when\": \"未定\"\n    },\n    {\n      \"action\": \"清理一号车间西侧安全通道周转筐，并按细则第 7 条补留影像（3 月 12 日当班班长李明）\",\n      \"owner\": \"未定\",\n      \"when\": \"未定\"\n    },\n    {\n      \"action\": \"跟进上周培训 6 名未到场人员（4 人当班、2 人请假）的补训安排\",\n      \"owner\": \"未定\",\n      \"when\": \"未定\"\n    }\n  ],\n  \"sources\": [\n    \"[S1] AQ-2026-031 第 1 条 通道占用记录\",\n    \"[S2] AQ-2026-031 第 2 条 灭火器 MQ-118、MQ-119\",\n    \"[S3] AQ-2026-031 第 3 条 行车防脱钩装置缺失\",\n    \"[S4] AQ-2026-031 第 4 条 培训到场率 87%\",\n    \"[S5] 《车间安全检查细则》第 7 条\"\n  ]\n}",
+          "checks": [
+            {
+              "id": "json_valid",
+              "type": "json_valid",
+              "passed": true,
+              "detail": "parsed"
+            },
+            {
+              "id": "contract_paths",
+              "type": "json_path",
+              "passed": true,
+              "detail": "all paths present"
+            },
+            {
+              "id": "cites_sources",
+              "type": "regex_all",
+              "passed": true,
+              "detail": "5 unique match(es) of /\\[S\\d+\\]/, need 3"
+            },
+            {
+              "id": "length_cap",
+              "type": "max_chars",
+              "passed": true,
+              "detail": "1226 chars (limit 1800)"
+            },
+            {
+              "id": "no_placeholders",
+              "type": "must_not_include",
+              "passed": true,
+              "detail": "clean"
+            },
+            {
+              "id": "chinese",
+              "type": "language",
+              "passed": true,
+              "detail": "cjk=405 latin=135"
+            }
+          ],
+          "check_summary": {
+            "total": 6,
+            "passed": 6,
+            "pass_rate": 1.0,
+            "failed_ids": []
+          },
+          "judge": {
+            "scores": {
+              "grounding": 4,
+              "actionability": 4,
+              "readability": 5,
+              "format_contract": 5
+            },
+            "notes": "grounding: '补训安排' and '整改无凭证可查' are not directly in the material. actionability: the 通道占用 item names 当班班长李明 in the action text but sets owner to 未定, leaving the responsible party unclear when the material provides one.",
+            "mean": 4.5,
+            "error": null
+          },
+          "latency_s": 8.24,
+          "prompt_tokens": 670,
+          "completion_tokens": 2090,
+          "finish_reason": "stop",
+          "truncated": false,
+          "reasoning_chars": 2842,
+          "error": null
+        },
+        {
+          "task_id": "digest-02",
+          "output": "{\n  \"summary\": \"GD-2026-088 批次 5 条设备工单：二号包装线贴标机两次错标且根因未定，三号车间空压机超温仍在监控，电池与灯管工单已关闭；批次内另有 1 份差旅发票抬头需重开。\",\n  \"key_points\": [\n    \"T-4411 贴标机每班错标约 3 次，重启视觉模块后恢复（见 [S2]）\",\n    \"T-4436 贴标机再错标 5 次，现象与 T-4411 一致（见 [S6]）\",\n    \"空压机温度 91℃，超设定阈值 85℃，降载运行（见 [S4]）\",\n    \"T-4418 电池告警、T-4430 灯管更换已关闭（见 [S3]、[S5]）\",\n    \"本批次差旅报销单 3 份已提交财务，1 份发票抬头有误（见 [S1]）\"\n  ],\n  \"risks\": [\n    \"贴标机错标重复出现，未找到根因（见 [S2]、[S6]）\",\n    \"空压机温度 91℃ 超阈值，仍在监控中（见 [S4]）\",\n    \"1 份差旅发票抬头有误，需重开（见 [S1]）\"\n  ],\n  \"next_actions\": [\n    {\"action\": \"对二号包装线贴标机错标提供远程支持\", \"owner\": \"厂家\", \"when\": \"未定\"},\n    {\"action\": \"厂家工程师到现场处理空压机超温\", \"owner\": \"厂家工程师\", \"when\": \"3 月 16 日\"},\n    {\"action\": \"重开抬头有误的差旅发票并提交财务\", \"owner\": \"未定\", \"when\": \"未定\"}\n  ],\n  \"sources\": [\n    \"[S1] GD-2026-088\",\n    \"[S2] T-4411\",\n    \"[S3] T-4418\",\n    \"[S4] T-4425\",\n    \"[S5] T-4430\",\n    \"[S6] T-4436\"\n  ]\n}",
+          "checks": [
+            {
+              "id": "json_valid",
+              "type": "json_valid",
+              "passed": true,
+              "detail": "parsed"
+            },
+            {
+              "id": "contract_paths",
+              "type": "json_path",
+              "passed": true,
+              "detail": "all paths present"
+            },
+            {
+              "id": "cites_sources",
+              "type": "regex_all",
+              "passed": true,
+              "detail": "6 unique match(es) of /\\[S\\d+\\]/, need 3"
+            },
+            {
+              "id": "no_offtopic",
+              "type": "must_not_include",
+              "passed": false,
+              "detail": "found: ['报销', '发票']"
+            },
+            {
+              "id": "recurring_captured",
+              "type": "must_include",
+              "passed": true,
+              "detail": "all 2 present"
+            },
+            {
+              "id": "length_cap",
+              "type": "max_chars",
+              "passed": true,
+              "detail": "833 chars (limit 1800)"
+            }
+          ],
+          "check_summary": {
+            "total": 6,
+            "passed": 5,
+            "pass_rate": 0.8333333333333334,
+            "failed_ids": [
+              "no_offtopic"
+            ]
+          },
+          "judge": {
+            "scores": {
+              "grounding": 5,
+              "risk_priority": 5,
+              "actionability": 3,
+              "format_contract": 5
+            },
+            "notes": "Grounding is clean (only source ticket numbers, 91℃/85℃, 3月16日, no invented durations or losses). Risks correctly focus on the repeat unclosed labeling fault and the over-temperature compressor rather than the closed battery/lamp tickets. Actionability only partially satisfies the criterion: vendor actions are labeled ('厂家'/'厂家工程师'), but the internal action (invoice reissue) has owner '未定' and the",
+            "mean": 4.5,
+            "error": null
+          },
+          "latency_s": 9.18,
+          "prompt_tokens": 704,
+          "completion_tokens": 2308,
+          "finish_reason": "stop",
+          "truncated": false,
+          "reasoning_chars": 3717,
+          "error": null
+        },
+        {
+          "task_id": "digest-03",
+          "output": "{\n  \"summary\": \"HY-2026-014供应商现场审核发现三项问题：成品库温湿度记录2月有4天断记；来料检验报告2份为复印件且无审核章；待处理区与合格区未物理隔离。结论建议30天内整改，截止日期待确认；隔离方案未收到，未约定评审时间。\",\n  \"key_points\": [\n    \"成品库温湿度记录2月有4天断记，原因称记录仪换电池未补录（见 [S2]）\",\n    \"来料检验报告2份为复印件且无审核章（见 [S3]）\",\n    \"现场待处理区与合格区未做物理隔离（见 [S4]）\",\n    \"结论建议三项30天内整改，截止日期待确认（见 [S5]）\",\n    \"待处理区隔离方案由被审方提出，尚未收到且未约定评审时间（见 [S6]）\"\n  ],\n  \"risks\": [\n    \"2月温湿度记录4天断记未补录（见 [S2]）\",\n    \"来料检验2份报告为复印件且无审核章（见 [S3]）\",\n    \"待处理区与合格区未物理隔离（见 [S4]）\",\n    \"整改截止日期尚未确认（见 [S5]）\",\n    \"隔离方案尚未收到，评审时间未约定（见 [S6]）\"\n  ],\n  \"next_actions\": [\n    {\n      \"action\": \"对三项审核发现进行整改\",\n      \"owner\": \"未定\",\n      \"when\": \"30天内（截止日期待确认）\"\n    },\n    {\n      \"action\": \"确认三项整改的具体截止日期\",\n      \"owner\": \"未定\",\n      \"when\": \"未定\"\n    },\n    {\n      \"action\": \"提交待处理区隔离方案\",\n      \"owner\": \"被审方\",\n      \"when\": \"未定\"\n    },\n    {\n      \"action\": \"评审待处理区隔离方案\",\n      \"owner\": \"未定\",\n      \"when\": \"未定\"\n    }\n  ],\n  \"sources\": [\n    \"[S1] 编号 HY-2026-014\",\n    \"[S2] 现象一\",\n    \"[S3] 现象二\",\n    \"[S4] 现象三\",\n    \"[S5] 结论栏\",\n    \"[S6] 备注\"\n  ]\n}",
+          "checks": [
+            {
+              "id": "json_valid",
+              "type": "json_valid",
+              "passed": true,
+              "detail": "parsed"
+            },
+            {
+              "id": "contract_paths",
+              "type": "json_path",
+              "passed": true,
+              "detail": "all paths present"
+            },
+            {
+              "id": "cites_sources",
+              "type": "regex_all",
+              "passed": true,
+              "detail": "6 unique match(es) of /\\[S\\d+\\]/, need 3"
+            },
+            {
+              "id": "no_invented_deadline",
+              "type": "regex_none",
+              "passed": true,
+              "detail": "no match"
+            },
+            {
+              "id": "undecided_marked",
+              "type": "must_include",
+              "passed": true,
+              "detail": "all 1 present"
+            },
+            {
+              "id": "length_cap",
+              "type": "max_chars",
+              "passed": true,
+              "detail": "1001 chars (limit 1800)"
+            }
+          ],
+          "check_summary": {
+            "total": 6,
+            "passed": 6,
+            "pass_rate": 1.0,
+            "failed_ids": []
+          },
+          "judge": {
+            "scores": {
+              "grounding": 5,
+              "uncertainty": 4,
+              "actionability": 3,
+              "format_contract": 5
+            },
+            "notes": "截止日期确认未写明谁与谁确认、谁在等谁；整改和方案评审行动项交付物不明确且负责人多标为未定；格式与不折算日期符合要求。",
+            "mean": 4.25,
+            "error": null
+          },
+          "latency_s": 13.55,
+          "prompt_tokens": 608,
+          "completion_tokens": 3534,
+          "finish_reason": "stop",
+          "truncated": false,
+          "reasoning_chars": 7006,
+          "error": null
+        },
+        {
+          "task_id": "digest-04",
+          "output": "{\"summary\":\"HY-2026-021 周例会（见 [S1]）：一期12个点位上线9个，3个等交换机到货；夜间误报日均2.3次未调参；云费增18%未查因；施工与运维接口人不统一；验收标准未确认；下次例会暂定3月20日。\",\"key_points\":[\"一期12个点位已上线9个，剩余3个等交换机到货顺延（见 [S2]）\",\"上线点位近7天平均每天2.3次误报，集中在夜间光照不足时段（见 [S3]）\",\"误报与镜头遮挡有关，未做参数调整（见 [S3]）\",\"本月云侧推理费用较上月增加18%，原因未查清（见 [S4]）\",\"现场施工队与运维班组接口人不同，两次到场无人对接（见 [S5]）\",\"验收标准仍沿用上一版草案，未确认最终版本（见 [S6]）\",\"下次例会暂定3月20日，会议室待定（见 [S7]）\"],\"risks\":[\"3个点位因等交换机到货顺延，供应商仅口头答复“下周”，无书面确认（见 [S2]）\",\"夜间光照不足时段误报日均2.3次，且未做参数调整（见 [S3]）\",\"云侧推理费用较上月增18%，原因未查清，账单明细未核对（见 [S4]）\",\"施工队与运维班组接口人不统一，两次到场无人对接，未指定统一接口人（见 [S5]）\",\"验收标准仍沿用上一版草案，最终版本未确认（见 [S6]）\"],\"next_actions\":[{\"action\":\"跟进交换机到货书面确认\",\"owner\":\"未定\",\"when\":\"未定\"},{\"action\":\"针对夜间误报做参数调整\",\"owner\":\"未定\",\"when\":\"未定\"},{\"action\":\"核对云侧推理费用增加18%的账单明细\",\"owner\":\"未定\",\"when\":\"未定\"},{\"action\":\"指定现场施工队与运维班组的统一接口人\",\"owner\":\"未定\",\"when\":\"未定\"},{\"action\":\"确认验收标准最终版本\",\"owner\":\"未定\",\"when\":\"未定\"},{\"action\":\"确定3月20日例会会议室\",\"owner\":\"未定\",\"when\":\"未定\"}],\"sources\":[\"[S1] HY-2026-021\",\"[S2] 议题一 进度\",\"[S3] 议题二 质量\",\"[S4] 议题三 成本\",\"[S5] 议题四 协作\",\"[S6] 议题五 制度\",\"[S7] 其他\"]}",
+          "checks": [
+            {
+              "id": "json_valid",
+              "type": "json_valid",
+              "passed": true,
+              "detail": "parsed"
+            },
+            {
+              "id": "contract_paths",
+              "type": "json_path",
+              "passed": true,
+              "detail": "all paths present"
+            },
+            {
+              "id": "cites_sources",
+              "type": "regex_all",
+              "passed": true,
+              "detail": "7 unique match(es) of /\\[S\\d+\\]/, need 3"
+            },
+            {
+              "id": "no_claimed_owner",
+              "type": "regex_none",
+              "passed": true,
+              "detail": "no match"
+            },
+            {
+              "id": "length_cap",
+              "type": "max_chars",
+              "passed": true,
+              "detail": "1002 chars (limit 1800)"
+            },
+            {
+              "id": "min_points",
+              "type": "regex_all",
+              "passed": true,
+              "detail": "1 unique match(es) of /\"key_points\"/, need 1"
+            }
+          ],
+          "check_summary": {
+            "total": 6,
+            "passed": 6,
+            "pass_rate": 1.0,
+            "failed_ids": []
+          },
+          "judge": {
+            "scores": {
+              "grounding": 5,
+              "compression": 5,
+              "actionability": 5,
+              "format_contract": 5
+            },
+            "notes": "",
+            "mean": 5.0,
+            "error": null
+          },
+          "latency_s": 17.64,
+          "prompt_tokens": 666,
+          "completion_tokens": 4558,
+          "finish_reason": "stop",
+          "truncated": false,
+          "reasoning_chars": 9362,
+          "error": null
+        }
+      ]
+    }
+  ],
+  "baseline_comparison": null
+}
