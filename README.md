@@ -1,5 +1,9 @@
 # agent-skill-eval
 
+[![eval](https://github.com/MengqiYu9/agent-skill-eval/actions/workflows/eval.yml/badge.svg)](https://github.com/MengqiYu9/agent-skill-eval/actions/workflows/eval.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
+
 **A regression gate for agent skills and prompt versions.** Edit a `SKILL.md`, run the
 suite, get a pass/fail verdict and a diff against the last accepted run — in CI, before
 the change reaches a user.
