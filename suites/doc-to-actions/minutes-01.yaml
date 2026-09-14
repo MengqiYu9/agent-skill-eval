@@ -1,0 +1,49 @@
+tasks:
+  - id: minutes-01
+    notes: 会议纪要。承诺项里混有"建议"和"必须"，且多项无人认领
+    input: |
+      请处理下面这份材料，抽出义务、期限、风险与待办。
+
+      === 材料开始（编号 JY-2026-055，专题会纪要摘录，合成示例）===
+      1.1 设备到货时间：供应商代表口头承诺"五月上旬"，会后应要求其补书面确认，纪要未记录责任人。
+      1.2 现场用电改造：会议明确必须在本月底前完成，否则影响后续安装排期。
+      2.1 误报处理：与会人员建议先做 3 天参数对比再决定是否调整阈值，未指定执行人。
+      2.2 培训安排：应当在下月中旬前完成两批操作培训，培训讲师由承建方提供。
+      3.1 争议事项：会上对"是否新增第 4 个点位"未达成一致，记录为"待下次会议再议"，未约定下次会议时间。
+      3.2 费用：上月云侧费用环比增加 18%，会议未讨论原因，也未指定核对人。
+      附：本次会议应到 11 人、实到 9 人，缺席 2 人未请假。
+      === 材料结束 ===
+    checks:
+      - id: json_valid
+        type: json_valid
+      - id: contract_paths
+        type: json_path
+        paths: [items, next_actions]
+      - id: cites_clauses
+        type: regex_all
+        pattern: '\d+\.\d+'
+        min_matches: 3
+      - id: modality_both
+        type: must_include
+        all: ["应当", "必须"]
+      - id: unresolved_marked
+        type: must_include
+        all: ["未明确"]
+      - id: undecided_kept
+        type: must_include
+        all: ["待下次会议再议"]
+      - id: no_invented_owner
+        type: must_not_include
+        any: ["项目经理", "运维组", "张伟", "王芳", "李强"]
+      - id: length_cap
+        type: max_chars
+        value: 2500
+    rubric:
+      - id: grounding
+        desc: 18%、9 人、5 月上旬等数字来自纪要，没有补充会议没说的结论
+      - id: no_upgrade
+        desc: 「建议先做对比」没有被写成「必须调整阈值」；口头承诺没有被写成已确认
+      - id: actionability
+        desc: 待办覆盖补书面确认、用电改造、参数对比、培训、费用核对；无责任人的标未明确
+      - id: contract
+        desc: 输出是纯 JSON，items 至少 3 条，每条带 citation

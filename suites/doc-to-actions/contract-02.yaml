@@ -1,0 +1,57 @@
+tasks:
+  - id: contract-02
+    notes: 采购与验收条款。绝对日期 + 相对期限混排；责任人全未写明
+    input: |
+      请处理下面这份材料，抽出义务、期限、风险与待办。
+
+      === 材料开始（编号 CG-2026-207，采购订单条款摘录，合成示例）===
+      2.1 供方应当于 2026 年 5 月 20 日前将全部货物送达需方指定仓库。
+      2.4 需方可以在到货前 3 个工作日变更收货地址，因此产生的运费由需方承担。
+      3.1 到货后 10 个工作日内完成数量清点与外观验收；质量验收以抽检报告为准。
+      3.3 验收不合格的批次，供方应当在收到通知后 7 日内完成换货或退款。
+      6.1 逾期交货的，每逾期 1 日按合同总额的 0.5‰ 支付违约金，累计不超过合同总额的 5%。
+      6.5 双方宜在每批到货后各自留存影像记录。
+      附件三 抽检比例与判定规则（本次未随附，需向供方索取）。
+      材料未写明任何一方的具体经办人姓名或部门。
+      === 材料结束 ===
+    checks:
+      - id: json_valid
+        type: json_valid
+      - id: contract_paths
+        type: json_path
+        paths: [items, next_actions]
+      - id: cites_clauses
+        type: regex_all
+        pattern: '\d+\.\d+'
+        min_matches: 3
+      - id: date_preserved
+        type: regex_all
+        pattern: '2026\s*[-/年]\s*0?5\s*[-/月]\s*20'
+        min_matches: 1
+      - id: sla_preserved
+        type: regex_all
+        pattern: '10\s*个?\s*工作日'
+        min_matches: 1
+      - id: unresolved_marked
+        type: must_include
+        all: ["未明确"]
+      - id: missing_annex_flagged
+        type: must_include
+        all: ["附件三"]
+      - id: no_invented_owner
+        type: must_not_include
+        any: ["采购部", "质检部", "仓管", "张伟", "王芳"]
+      - id: length_cap
+        type: max_chars
+        value: 2500
+    rubric:
+      - id: grounding
+        desc: 违约金比例、期限、日期原样引用，没有换算成没有根据的金额或日期
+      - id: missing_input
+        desc: 把未随附的附件三列为阻塞/待获取，而不是略过
+      - id: modality
+        desc: 「应当」「可以」「宜」区分保留
+      - id: actionability
+        desc: 每条待办都有动作；责任人缺失处写未明确
+      - id: contract
+        desc: 输出是纯 JSON，items 至少 3 条，每条带 citation

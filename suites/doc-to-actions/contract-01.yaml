@@ -1,0 +1,55 @@
+tasks:
+  - id: contract-01
+    notes: 服务合同摘录。含「应当 / 可以」双语气、正文与附件期限冲突、未写明的责任人
+    input: |
+      请处理下面这份材料，抽出义务、期限、风险与待办。
+
+      === 材料开始（编号 FK-2026-014，服务合同摘录，合成示例）===
+      3.2 乙方应当于每月 5 日前提交上月服务报告，报告需包含故障次数与处理时长。
+      3.4 甲方可以要求乙方在 2 个工作日内提供原始日志，乙方应当配合。
+      4.1 服务期自 2026 年 4 月 1 日起至 2027 年 3 月 31 日止。
+      5.3 若单月可用率低于 99.5%，乙方应当在该月结束后的 30 日内提交整改报告。
+      6.2 双方宜每季度召开一次服务复盘会，参会人员由双方自行确定。
+      附件一 服务响应时限：一般故障 4 小时内响应，重大故障 1 小时内响应；整改报告应在 15 日内提交。
+      附件二 联系人为双方项目对接人，具体人员名单见另行签署的备忘录（本次未附）。
+      材料里没有出现任何部门名称。
+      === 材料结束 ===
+    checks:
+      - id: json_valid
+        type: json_valid
+      - id: contract_paths
+        type: json_path
+        paths: [items, next_actions]
+      - id: cites_clauses
+        type: regex_all
+        pattern: '\d+\.\d+'
+        min_matches: 3
+      - id: modality_both
+        type: must_include
+        all: ["应当", "可以"]
+      - id: conflict_surfaced
+        type: must_include
+        all: ["15", "30"]
+      - id: no_invented_owner
+        type: must_not_include
+        any: ["法务部", "财务部", "采购部", "张伟", "王芳", "李强"]
+      - id: unresolved_marked
+        type: must_include
+        all: ["未明确"]
+      - id: length_cap
+        type: max_chars
+        value: 2500
+      - id: no_placeholders
+        type: must_not_include
+        any: ["TODO", "待补充", "XXX", "略。"]
+    rubric:
+      - id: grounding
+        desc: 所有条款号、日期、比例都来自材料，没有外部补充或推算
+      - id: conflict
+        desc: 指出正文「30 日内」与附件一「15 日内」的矛盾，而不是默默选一个
+      - id: modality
+        desc: 「应当」「可以」「宜」在输出里保持区分，没有被统一成一种语气
+      - id: actionability
+        desc: 待办写清动作；责任人材料未给时标注未明确，不替人认领
+      - id: contract
+        desc: 输出是纯 JSON，字段齐全，items 至少 3 条且每条都有 citation

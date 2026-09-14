@@ -1,0 +1,50 @@
+tasks:
+  - id: notice-01
+    notes: 整改通知。相对期限（30 日内）无具体日期；正文与附件条款数不一致；考验"不许把相对期限换算成具体日期"
+    input: |
+      请处理下面这份材料，抽出义务、期限、风险与待办。
+
+      === 材料开始（编号 ZG-2026-031，整改通知摘录，合成示例）===
+      1.1 依据 3 月 10 日现场审核结果，要求被审方在 30 日内完成整改并提交整改报告。
+      1.2 整改报告应当逐项对应审核发现，并附整改前后影像。
+      2.1 被审方可以选择自行整改或委托第三方整改，第三方资质需事先提交审核方确认。
+      2.2 整改期间被审方应当保持现场隔离措施有效。
+      3.1 本通知列明审核发现三项：温湿度记录断记、检验报告无审核章、区域未物理隔离。
+      附件二 整改情况反馈表：列明四行，含上述三项及一项"其他"。
+      4.1 本通知自送达之日起生效，送达方式由双方另行约定，至今未约定。
+      材料未写明任何联系人姓名。
+      === 材料结束 ===
+    checks:
+      - id: json_valid
+        type: json_valid
+      - id: contract_paths
+        type: json_path
+        paths: [items, next_actions]
+      - id: cites_clauses
+        type: regex_all
+        pattern: '\d+\.\d+'
+        min_matches: 3
+      - id: no_invented_deadline
+        type: regex_none
+        pattern: '(截止|前完成)[^。；\n]{0,10}(4\s*月\s*[0-9]{1,2}\s*日|2026\s*年\s*4\s*月)'
+      - id: conflict_surfaced
+        type: must_include
+        all: ["三项", "四行"]
+      - id: owner_unresolved
+        type: must_include
+        all: ["未明确"]
+      - id: modality_both
+        type: must_include
+        all: ["应当", "可以"]
+      - id: length_cap
+        type: max_chars
+        value: 2500
+    rubric:
+      - id: grounding
+        desc: 没有把「30 日内」换算成具体日期，也没有替双方约定送达方式
+      - id: conflict
+        desc: 指出正文"三项"与附件二"四行"的不一致
+      - id: uncertainty
+        desc: 送达方式未约定、联系人未知被显式标为未明确或待确认
+      - id: contract
+        desc: 输出是纯 JSON，items 至少 3 条，每条带 citation

@@ -1,0 +1,60 @@
+{
+  "doc-to-actions/v1": {
+    "task_pass_rate": 0.5833,
+    "check_pass_rate": 0.5882,
+    "judge_mean": 3.638,
+    "per_check": {
+      "json_valid": 0.0,
+      "contract_paths": 0.0,
+      "cites_clauses": 1.0,
+      "modality_both": 1.0,
+      "conflict_surfaced": 1.0,
+      "no_invented_owner": 1.0,
+      "unresolved_marked": 0.6666666666666666,
+      "length_cap": 0.0,
+      "no_placeholders": 1.0,
+      "date_preserved": 1.0,
+      "sla_preserved": 1.0,
+      "missing_annex_flagged": 1.0,
+      "undecided_kept": 1.0,
+      "no_invented_deadline": 1.0,
+      "owner_unresolved": 0.0
+    },
+    "per_task": {
+      "contract-01": 0.6666666666666666,
+      "contract-02": 0.6666666666666666,
+      "minutes-01": 0.5,
+      "notice-01": 0.5
+    },
+    "model": "deepseek-flash"
+  },
+  "doc-to-actions/v2": {
+    "task_pass_rate": 1.0,
+    "check_pass_rate": 1.0,
+    "judge_mean": 4.875,
+    "per_check": {
+      "json_valid": 1.0,
+      "contract_paths": 1.0,
+      "cites_clauses": 1.0,
+      "modality_both": 1.0,
+      "conflict_surfaced": 1.0,
+      "no_invented_owner": 1.0,
+      "unresolved_marked": 1.0,
+      "length_cap": 1.0,
+      "no_placeholders": 1.0,
+      "date_preserved": 1.0,
+      "sla_preserved": 1.0,
+      "missing_annex_flagged": 1.0,
+      "undecided_kept": 1.0,
+      "no_invented_deadline": 1.0,
+      "owner_unresolved": 1.0
+    },
+    "per_task": {
+      "contract-01": 1.0,
+      "contract-02": 1.0,
+      "minutes-01": 1.0,
+      "notice-01": 1.0
+    },
+    "model": "deepseek-flash"
+  }
+}
