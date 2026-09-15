@@ -34,10 +34,11 @@ jobs:
           python -m skilleval run --suite tasks \
             --skill skills/structured-digest/v1 --skill skills/structured-digest/v2 \
             --runner mock --mock-outputs examples/mock_outputs.json --no-judge \
-            --baseline examples/baseline.mock.v2.1.json --out reports
+            --baseline examples/baseline.mock.json --allow-legacy-baseline --out reports
           python -m skilleval run --suite suites/doc-to-actions-v2.1 \
             --skill skills/doc-to-actions/v2.1 --runner mock \
-            --mock-outputs examples/mock-doc-to-actions-v2.1.json --no-judge --out reports
+            --mock-outputs examples/mock-doc-to-actions-v2.1.json --no-judge \
+            --baseline examples/baseline.mock.v2.1.json --out reports
       - uses: actions/upload-artifact@v4
         if: always()
         with:
