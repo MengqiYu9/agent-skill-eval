@@ -12,7 +12,7 @@ import os
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -25,6 +25,9 @@ class Completion:
     error: str | None = None
     finish_reason: str = ""
     reasoning_chars: int = 0
+    events: list = field(default_factory=list)
+    artifacts: dict = field(default_factory=dict)
+    metadata: dict = field(default_factory=dict)
 
     @property
     def total_tokens(self) -> int:
@@ -97,12 +100,17 @@ class LLMRunner:
             choice = payload["choices"][0]
             message = choice.get("message") or {}
             text = message.get("content") or ""
+            if not isinstance(text, str):
+                raise ValueError("content must be text")
             reasoning = message.get("reasoning_content") or choice.get("reasoning_content") or ""
             finish = choice.get("finish_reason") or ""
         except Exception:
             return Completion("", latency, model=self.model,
                               error="unexpected response shape: %s" % json.dumps(payload)[:400])
         usage = payload.get("usage") or {}
+        if not isinstance(usage, dict) or any(type(usage.get(k, 0)) is not int or usage.get(k, 0) < 0
+                                             for k in ("prompt_tokens", "completion_tokens")):
+            return Completion("", latency, model=self.model, error="invalid token usage")
         completion = Completion(text, latency, usage.get("prompt_tokens", 0),
                                 usage.get("completion_tokens", 0), payload.get("model", self.model),
                                 finish_reason=finish, reasoning_chars=len(reasoning))
@@ -135,5 +143,8 @@ class MockRunner:
 def make_runner(options, api_key: str | None):
     if options.runner == "mock":
         return MockRunner(options.mock_outputs)
+    if options.runner in ("codex", "claude", "gemini", "cursor"):
+        from .native import NativeRunner
+        return NativeRunner(options)
     return LLMRunner(options.base_url, api_key or "", options.model, options.temperature,
                      options.max_tokens, options.timeout)

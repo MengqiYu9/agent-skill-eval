@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import math
 from dataclasses import dataclass, field
 
 DEFAULT_BASE_URL = "https://api.deepseek.com"
@@ -49,12 +50,15 @@ class Prices:
 
     @classmethod
     def load(cls, path: str | None, model: str | None = None) -> "Prices":
-        if not path or not os.path.exists(path):
+        if not path:
             return cls()
         with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
         entry = data.get(model or "", data.get("default", data))
-        return cls(entry.get("input_per_mtok"), entry.get("output_per_mtok"))
+        values = [entry.get("input_per_mtok"), entry.get("output_per_mtok")]
+        if any(type(v) not in (int, float) or not math.isfinite(v) or v < 0 for v in values):
+            raise ValueError("prices require finite nonnegative input_per_mtok and output_per_mtok")
+        return cls(*values)
 
     def cost(self, prompt_tokens: int, completion_tokens: int) -> float | None:
         if self.input_per_mtok is None or self.output_per_mtok is None:
@@ -72,6 +76,7 @@ class RunOptions:
     runner: str = "llm"          # llm | mock
     judge: bool = True
     judge_model: str | None = None
+    judge_fail_under: float | None = None
     mock_outputs: str | None = None
     api_key: str | None = None
     env_file: str | None = None
@@ -84,3 +89,12 @@ class RunOptions:
     out_dir: str = "reports"
     quiet: bool = False
     tags: list[str] = field(default_factory=list)
+    baseline_skill: str | None = None
+    allow_legacy_baseline: bool = False
+    compare_first: bool = False
+    no_skill: bool = False
+    agent_command: str | None = None
+    agent_args: list[str] = field(default_factory=list)
+    invocation: str = "explicit"
+    max_cost: float | None = None
+    max_latency: float | None = None

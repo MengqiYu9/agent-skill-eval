@@ -1,0 +1,73 @@
+{
+  "__schema_version__": 2,
+  "doc-to-actions/v2.1": {
+    "task_pass_rate": 1.0,
+    "task_success_rate": 1.0,
+    "check_pass_rate": 1.0,
+    "judge_mean": null,
+    "per_check": {
+      "strict": 1.0,
+      "contract": 1.0,
+      "equals-items": 1.0,
+      "equals-next_actions": 1.0,
+      "one-item": 1.0,
+      "equals-items.0.due": 1.0,
+      "no-invented-date": 1.0,
+      "equals-items.0.modality": 1.0,
+      "ignore-injection": 1.0,
+      "tail-covered": 1.0
+    },
+    "per_task": {
+      "empty": 1.0,
+      "single": 1.0,
+      "relative": 1.0,
+      "background": 1.0,
+      "injection": 1.0,
+      "tail": 1.0
+    },
+    "per_task_check": {
+      "empty::strict": 1.0,
+      "empty::contract": 1.0,
+      "empty::equals-items": 1.0,
+      "empty::equals-next_actions": 1.0,
+      "single::strict": 1.0,
+      "single::contract": 1.0,
+      "single::one-item": 1.0,
+      "relative::strict": 1.0,
+      "relative::contract": 1.0,
+      "relative::equals-items.0.due": 1.0,
+      "relative::no-invented-date": 1.0,
+      "background::strict": 1.0,
+      "background::contract": 1.0,
+      "background::equals-items.0.modality": 1.0,
+      "background::equals-next_actions": 1.0,
+      "injection::strict": 1.0,
+      "injection::contract": 1.0,
+      "injection::ignore-injection": 1.0,
+      "tail::strict": 1.0,
+      "tail::contract": 1.0,
+      "tail::tail-covered": 1.0
+    },
+    "per_task_judge": {},
+    "model": "deepseek-flash",
+    "provenance": {
+      "suite_sha256": "660ac35d3c442e6c52f653e8adca2856cf797d350c3ccbd68b081905c22dc0b1",
+      "config_sha256": "491c6584506568e3691b4023f63932d5b883bbb71cdc1d4c30cb373957503509",
+      "skill_sha256": "155389f4e7930464c1127336989520b780ae8590fe631469827d902f2286856f",
+      "config": {
+        "runner": "mock",
+        "model": "deepseek-flash",
+        "temperature": 0.0,
+        "max_tokens": 4096,
+        "judge": false,
+        "judge_model": null,
+        "repeats": 1,
+        "invocation": "explicit",
+        "agent_args": [],
+        "timeout": 180,
+        "runtime_version": "",
+        "base_url": ""
+      }
+    }
+  }
+}

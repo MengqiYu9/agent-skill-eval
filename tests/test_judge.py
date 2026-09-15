@@ -30,15 +30,17 @@ class TestJudge(unittest.TestCase):
         self.assertAlmostEqual(r.mean, 4.0)
         self.assertIsNone(r.error)
 
-    def test_clamps_out_of_range(self):
+    def test_rejects_out_of_range(self):
         r = judge_output(FakeRunner('{"scores": {"grounding": 99, "actionability": -4}}'),
                          RUBRIC, "input", "output")
-        self.assertEqual(r.scores, {"grounding": 5, "actionability": 0})
+        self.assertIsNotNone(r.error)
+        self.assertEqual(r.mean, 0.0)
 
     def test_records_missing_criteria_as_none(self):
         r = judge_output(FakeRunner('{"scores": {"grounding": 4}}'), RUBRIC, "i", "o")
         self.assertIsNone(r.scores["actionability"])
-        self.assertAlmostEqual(r.mean, 4.0)
+        self.assertIsNotNone(r.error)
+        self.assertEqual(r.mean, 0.0)
 
     def test_non_json_reply_is_an_error_not_a_crash(self):
         r = judge_output(FakeRunner("I think it is quite good."), RUBRIC, "i", "o")

@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-skill-eval"
-version = "0.1.0"
+version = "2.1.0"
 description = "Regression gate for agent skills and prompt versions: deterministic checks + rubric judge, A/B between two skill versions, CI verdicts."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 keywords = ["llm", "agent", "skills", "evaluation", "regression-testing", "evals"]
-dependencies = ["pyyaml>=6"]
+dependencies = ["pyyaml>=6", "jsonschema>=4.18,<5"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]

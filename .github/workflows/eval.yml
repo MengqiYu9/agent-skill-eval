@@ -4,67 +4,78 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   offline-suite:
-    name: offline suite (mock runner, no key needed)
+    name: offline harness / Python ${{ matrix.python }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.9", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python }}
       - run: pip install -e ".[dev]"
-      - name: unit tests
+      - name: unit and native contract tests (no model calls)
         run: python -m pytest -q
-      - name: validate suite + skills (no model calls)
+      - name: validate suites and skills
         run: |
-          python -m skilleval validate --suite tasks \
-            --skill skills/structured-digest/v1 --skill skills/structured-digest/v2
-          python -m skilleval validate --suite suites/doc-to-actions \
-            --skill skills/doc-to-actions/v1 --skill skills/doc-to-actions/v2
-      - name: deterministic gate against the committed baseline
+          python -m skilleval validate --suite tasks --skill skills/structured-digest/v2
+          python -m skilleval validate --suite suites/doc-to-actions --skill skills/doc-to-actions/v2.1
+          python -m skilleval validate --suite suites/doc-to-actions-v2.1 --skill skills/doc-to-actions/v2.1
+      - name: offline harness regression checks
         run: |
-          python -m skilleval run \
-            --suite tasks \
-            --skill skills/structured-digest/v1 \
-            --skill skills/structured-digest/v2 \
-            --runner mock \
-            --mock-outputs examples/mock_outputs.json \
-            --no-judge \
-            --baseline examples/baseline.mock.json \
-            --max-regression 0.0 \
-            --out reports
+          python -m skilleval run --suite tasks \
+            --skill skills/structured-digest/v1 --skill skills/structured-digest/v2 \
+            --runner mock --mock-outputs examples/mock_outputs.json --no-judge \
+            --baseline examples/baseline.mock.v2.1.json --out reports
+          python -m skilleval run --suite suites/doc-to-actions-v2.1 \
+            --skill skills/doc-to-actions/v2.1 --runner mock \
+            --mock-outputs examples/mock-doc-to-actions-v2.1.json --no-judge --out reports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: offline-report-${{ matrix.python }}
+          path: reports/
 
   live-suite:
-    name: live suite (needs SKILLEVAL_API_KEY)
+    name: live skill behavior (opt-in)
+    # Never execute fork PR code with repository secrets. Do not use pull_request_target.
+    if: >-
+      vars.ENABLE_LIVE_EVAL == 'true' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -e "."
-      - name: run against the real model and gate on regressions
+      - run: pip install -e .
+      - name: evaluate candidate skills on this commit
         env:
           SKILLEVAL_API_KEY: ${{ secrets.SKILLEVAL_API_KEY }}
           SKILLEVAL_BASE_URL: ${{ vars.SKILLEVAL_BASE_URL }}
           SKILLEVAL_MODEL: ${{ vars.SKILLEVAL_MODEL }}
         run: |
-          if [ -z "$SKILLEVAL_API_KEY" ]; then
-            echo "no key configured - skipping live suite"; exit 0
-          fi
-          python -m skilleval run \
-            --suite tasks \
-            --skill skills/structured-digest/v1 \
-            --skill skills/structured-digest/v2 \
-            --max-tokens 8192 \
-            --baseline baseline.json \
-            --max-regression 0.0 \
-            --out reports
+          test -n "$SKILLEVAL_API_KEY" || { echo "ENABLE_LIVE_EVAL requires SKILLEVAL_API_KEY"; exit 2; }
+          python -m skilleval run --suite tasks \
+            --skill skills/structured-digest/v2 --max-tokens 8192 \
+            --baseline baseline.json --allow-legacy-baseline --out reports
+          python -m skilleval run --suite suites/doc-to-actions-v2.1 \
+            --skill skills/doc-to-actions/v2.1 --max-tokens 16384 --repeats 3 \
+            --judge-fail-under 4 --out reports
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: eval-report
+          name: live-report
           path: reports/

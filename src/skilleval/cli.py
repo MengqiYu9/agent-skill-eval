@@ -12,6 +12,9 @@ import argparse
 import json
 import os
 import sys
+import math
+from pathlib import Path
+from .gate import decide_verdict, complete
 
 from .config import DEFAULT_BASE_URL, DEFAULT_MODEL, Prices, RunOptions, resolve_api_key
 from .report import (VERDICT_ERROR, VERDICT_PASS, VERDICT_REGRESSION, baseline_from,
@@ -24,9 +27,9 @@ def _add_run_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--suite", required=True, help="task file or directory of .yaml/.json task sets")
     p.add_argument("--skill", action="append", default=[], required=True,
                    help="skill dir (containing SKILL.md) or a prompt .md file; repeat for A/B")
-    p.add_argument("--runner", choices=["llm", "mock"], default="llm")
+    p.add_argument("--runner", choices=["llm", "mock", "codex", "claude", "gemini", "cursor"], default="llm")
     p.add_argument("--mock-outputs", help="fixture JSON for --runner mock, keys: '<skill>::<task>'")
-    p.add_argument("--model", default=os.environ.get("SKILLEVAL_MODEL", DEFAULT_MODEL))
+    p.add_argument("--model", default=os.environ.get("SKILLEVAL_MODEL"))
     p.add_argument("--judge-model", default=None, help="defaults to --model")
     p.add_argument("--base-url", default=os.environ.get("SKILLEVAL_BASE_URL", DEFAULT_BASE_URL))
     p.add_argument("--api-key", default=None, help="prefer env var / --env-file over argv")
@@ -44,80 +47,139 @@ def _add_run_args(p: argparse.ArgumentParser) -> None:
                    help="allowed pass-rate drop vs baseline before failing (0.0 = any drop fails)")
     p.add_argument("--fail-under", type=float, default=None, help="absolute floor for check pass rate")
     p.add_argument("--quiet", action="store_true")
+    p.add_argument("--repeats", type=int, default=1)
+    p.add_argument("--baseline-skill", help="explicit baseline entry to compare the candidate to")
+    p.add_argument("--allow-legacy-baseline", action="store_true")
+    p.add_argument("--compare-first", action="store_true", help="gate later arms against the first arm")
+    p.add_argument("--no-skill", action="store_true", help="prepend an unskilled control arm")
+    p.add_argument("--judge-fail-under", type=float)
+    p.add_argument("--max-cost", type=float, help="maximum total USD per arm, including judging")
+    p.add_argument("--max-latency", type=float, help="maximum total seconds per arm, including judging")
+    p.add_argument("--agent-command", help="native CLI executable path")
+    p.add_argument("--agent-arg", action="append", default=[], help="extra native CLI argument (use --agent-arg=VALUE)")
+    p.add_argument("--invocation", choices=["explicit", "implicit"], default="explicit")
 
 
-def cmd_run(args) -> int:
+def cmd_run(args):
+    native = args.runner not in ("llm", "mock")
+    model = args.model or ("" if native else DEFAULT_MODEL)
     options = RunOptions(
-        base_url=args.base_url, model=args.model, temperature=args.temperature,
+        base_url=args.base_url or DEFAULT_BASE_URL, model=model, temperature=args.temperature,
         max_tokens=args.max_tokens, timeout=args.timeout, runner=args.runner,
         judge=not args.no_judge, judge_model=args.judge_model,
         mock_outputs=args.mock_outputs, api_key=args.api_key, env_file=args.env_file,
         prices_file=args.prices, out_dir=args.out, baseline=args.baseline,
         save_baseline=args.save_baseline, max_regression=args.max_regression,
-        fail_under=args.fail_under, quiet=args.quiet,
+        fail_under=args.fail_under, quiet=args.quiet, repeats=args.repeats,
+        baseline_skill=args.baseline_skill, allow_legacy_baseline=args.allow_legacy_baseline,
+        compare_first=args.compare_first, no_skill=args.no_skill,
+        judge_fail_under=args.judge_fail_under, max_cost=args.max_cost, max_latency=args.max_latency,
+        agent_command=args.agent_command, agent_args=args.agent_arg, invocation=args.invocation,
     )
-    log = (lambda *a, **k: None) if args.quiet else print
-
-    api_key, source = (None, "not needed (mock runner)")
-    if args.runner == "llm":
-        api_key, source = resolve_api_key(args.api_key, args.env_file)
-        if not api_key:
-            print("error: no API key found (checked --api-key, SKILLEVAL_API_KEY/DEEPSEEK_API_KEY,"
-                  " --env-file). Use --runner mock to run offline.", file=sys.stderr)
-            return 2
-    log("runner=%s model=%s key=%s" % (args.runner, args.model, source if api_key else "n/a"))
-
-    try:
-        tasks = load_tasks(args.suite)
-        skills = [load_skill(p) for p in args.skill]
-        runner = make_runner(options, api_key)
-    except (SuiteError, RunnerError) as exc:
-        print("error: %s" % exc, file=sys.stderr)
-        return 2
-
-    log("suite=%s tasks=%d skills=%s" % (args.suite, len(tasks), [s.id for s in skills]))
-    prices = Prices.load(args.prices, args.model)
-
+    log = (lambda *a: None) if args.quiet else print
+    for name, value, low, high in (
+        ("max-regression", args.max_regression, 0, 1), ("fail-under", args.fail_under, 0, 1),
+        ("temperature", args.temperature, 0, 2), ("judge-fail-under", args.judge_fail_under, 0, 5),
+        ("max-cost", args.max_cost, 0, float("inf")), ("max-latency", args.max_latency, 0, float("inf"))):
+        if value is not None and (not math.isfinite(value) or not low <= value <= high):
+            raise SuiteError("invalid --" + name)
+    if args.repeats < 1 or args.max_tokens < 1 or args.timeout < 1:
+        raise SuiteError("repeats, max-tokens and timeout must be positive")
+    if args.compare_first and args.baseline:
+        raise SuiteError("--compare-first and --baseline are mutually exclusive")
+    if args.baseline_skill and (not args.baseline or len(args.skill) != 1 or args.no_skill):
+        raise SuiteError("--baseline-skill requires one candidate and --baseline")
+    if args.save_baseline and Path(args.save_baseline).exists():
+        raise SuiteError("--save-baseline cannot overwrite; use accept-baseline --replace after reviewing a report")
+    tasks = load_tasks(args.suite)
+    skills = [load_skill(p) for p in args.skill]
+    if args.no_skill:
+        skills.insert(0, load_skill("__no_skill__"))
+    if len({s.id for s in skills}) != len(skills):
+        raise SuiteError("duplicate skill ids; pass distinct skill version directories")
+    if args.compare_first and len(skills) < 2:
+        raise SuiteError("--compare-first requires at least two arms")
+    if not native and any(t.files or any("artifact" in c for c in t.checks) for t in tasks):
+        raise SuiteError("file fixtures/artifact checks require a native runner")
+    if args.runner == "mock" and options.judge:
+        raise SuiteError("mock requires --no-judge; recorded worker outputs cannot judge themselves")
+    if native and options.judge and not args.judge_model:
+        raise SuiteError("native judging requires --judge-model for the separate API judge, or --no-judge")
+    if args.judge_fail_under is not None and (not options.judge or any(not t.rubric for t in tasks)):
+        raise SuiteError("--judge-fail-under requires judging and a rubric on every task")
+    baseline = None
+    if args.baseline:
+        baseline = json.loads(Path(args.baseline).read_text(encoding="utf-8-sig"))
+        if not isinstance(baseline, dict):
+            raise SuiteError("baseline must be an object")
+        if "__schema_version__" not in baseline and not args.allow_legacy_baseline:
+            raise SuiteError("legacy baseline: use --allow-legacy-baseline explicitly or migrate")
+        if any((args.baseline_skill or s.id) not in baseline for s in skills):
+            raise SuiteError("baseline entry missing for a candidate")
+    key, source = (None, None)
+    if args.runner == "llm" or options.judge:
+        key, source = resolve_api_key(args.api_key, args.env_file)
+        if not key:
+            raise SuiteError("no API key configured")
+    prices = Prices.load(args.prices, model)
+    judge_prices = Prices.load(args.prices, args.judge_model or model)
+    runner = make_runner(options, key)
+    judge_runner = None
+    if native and options.judge:
+        from .runner import LLMRunner
+        judge_runner = LLMRunner(options.base_url, key, args.judge_model, 0, args.max_tokens, args.timeout)
+    log("runner=%s model=%s" % (args.runner, model or "platform default"))
     results = []
     for skill in skills:
-        log("→ %s" % skill.id)
-        results.append(run_skill(skill, tasks, runner, options, logger=log))
-
-    verdict = VERDICT_PASS
+        result = run_skill(skill, tasks, runner, options, logger=log, judge_runner=judge_runner)
+        result.prices, result.judge_prices = prices, judge_prices
+        results.append(result)
     comparison = None
-    if any(o.error for r in results for o in r.outcomes):
-        errors = [o.error for r in results for o in r.outcomes if o.error]
-        if all(o.error for r in results for o in r.outcomes):
-            verdict = VERDICT_ERROR
-        log("note: %d task(s) reported runner errors, e.g. %s" % (len(errors), errors[0][:120]))
-
-    if args.baseline and not verdict == VERDICT_ERROR:
-        if not os.path.exists(args.baseline):
-            print("error: baseline %s not found" % args.baseline, file=sys.stderr)
-            return 2
-        with open(args.baseline, encoding="utf-8") as fh:
-            baseline = json.load(fh)
-        comparison = compare_to_baseline(results, baseline, args.max_regression)
-        if any(v.get("regression") for v in comparison.values()):
-            verdict = VERDICT_REGRESSION
-
-    if args.fail_under is not None:
-        for r in results:
-            if r.aggregate()["checks"]["pass_rate"] < args.fail_under:
-                verdict = VERDICT_REGRESSION
-                log("below floor: %s check pass rate < %.2f" % (r.skill_id, args.fail_under))
-
+    if baseline:
+        comparison = compare_to_baseline(results, baseline, args.max_regression,
+                                         args.baseline_skill, args.allow_legacy_baseline)
+    elif args.compare_first and complete(results[0]):
+        comparison = compare_to_baseline(results[1:], baseline_from(results[:1]),
+                                         args.max_regression, results[0].skill_id)
+    verdict = decide_verdict(results, options, comparison)
     markdown = render_markdown(results, options, comparison=comparison, verdict=verdict)
-    md_path, json_path = write_outputs(results, options, args.out, markdown, comparison=comparison,
-                                       verdict=verdict)
+    md_path, json_path = write_outputs(results, options, args.out, markdown,
+                                       comparison=comparison, verdict=verdict)
     if args.save_baseline:
-        with open(args.save_baseline, "w", encoding="utf-8") as fh:
-            json.dump(baseline_from(results), fh, ensure_ascii=False, indent=2)
-
-    log("\n%s" % markdown.split("## Failure evidence")[0])
-    log("report: %s\n        %s" % (md_path, json_path))
-    log("verdict: %s" % verdict)
+        if verdict == VERDICT_PASS:
+            with open(args.save_baseline, "x", encoding="utf-8") as fh:
+                json.dump(baseline_from(results), fh, ensure_ascii=False, indent=2)
+        else:
+            log("baseline was not saved: verdict is " + verdict)
+    log("report: %s\n%s\nverdict: %s" % (md_path, json_path, verdict))
     return {VERDICT_PASS: 0, VERDICT_REGRESSION: 1, VERDICT_ERROR: 2}[verdict]
+
+
+def cmd_accept_baseline(args):
+    report = json.loads(Path(args.report).read_text(encoding="utf-8-sig"))
+    candidate = report.get("baseline_candidate")
+    if report.get("schema_version") != 2 or report.get("verdict") != VERDICT_PASS or not isinstance(candidate, dict) or candidate.get("__schema_version__") != 2:
+        raise SuiteError("only a complete v2 PASS report can be accepted")
+    if Path(args.out).exists() and not args.replace:
+        raise SuiteError("baseline exists; review the report then use --replace explicitly")
+    # Keep the old baseline intact if serialization or writing fails.
+    import tempfile
+    destination = Path(args.out).absolute()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=destination.parent, delete=False) as fh:
+        temporary = Path(fh.name)
+        json.dump(candidate, fh, ensure_ascii=False, indent=2)
+    try:
+        if args.replace:
+            os.replace(temporary, destination)
+        else:
+            # Exclusive creation refuses a competing writer.
+            with destination.open("x", encoding="utf-8") as fh:
+                fh.write(temporary.read_text(encoding="utf-8"))
+    finally:
+        temporary.unlink(missing_ok=True)
+    print("accepted baseline: %s" % destination)
+    return 0
 
 
 def cmd_validate(args) -> int:
@@ -179,6 +241,8 @@ def cmd_init(args) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="skilleval",
                                      description="Regression gate for agent skills / prompt versions")
+    from . import __version__
+    parser.add_argument("--version", action="version", version=__version__)
     sub = parser.add_subparsers(dest="command", required=True)
     p_run = sub.add_parser("run", help="run a suite over one or more skill versions")
     _add_run_args(p_run)
@@ -194,12 +258,21 @@ def build_parser() -> argparse.ArgumentParser:
     p_init.add_argument("--name", required=True)
     p_init.add_argument("--version", default="v1")
     p_init.set_defaults(func=cmd_init)
+    p_accept = sub.add_parser("accept-baseline", help="promote a reviewed PASS report")
+    p_accept.add_argument("--report", required=True)
+    p_accept.add_argument("--out", required=True)
+    p_accept.add_argument("--replace", action="store_true")
+    p_accept.set_defaults(func=cmd_accept_baseline)
     return parser
 
 
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except (SuiteError, RunnerError, OSError, ValueError, TypeError) as exc:
+        print("error: %s" % exc, file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":  # pragma: no cover

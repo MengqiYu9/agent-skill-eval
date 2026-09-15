@@ -4,57 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+import uuid
+import html
 
-VERDICT_PASS = "PASS"
-VERDICT_REGRESSION = "REGRESSION"
-VERDICT_ERROR = "ERROR"
-
-
-def baseline_from(results: list) -> dict:
-    out = {}
-    for r in results:
-        agg = r.aggregate()
-        out[r.skill_id] = {
-            "task_pass_rate": agg["task_pass_rate"],
-            "check_pass_rate": agg["checks"]["pass_rate"],
-            "judge_mean": agg["judge_mean"],
-            "per_check": {k: v["passed"] / v["total"] for k, v in agg["per_check"].items() if v["total"]},
-            "per_task": {o.task_id: o.check_summary.get("pass_rate", 0.0) for o in r.outcomes},
-            "model": r.model,
-        }
-    return out
-
-
-def compare_to_baseline(results: list, baseline: dict, max_regression: float) -> dict:
-    """Per-skill delta against a saved baseline. Regression = pass rate drop beyond tolerance."""
-    report = {}
-    for r in results:
-        base = baseline.get(r.skill_id)
-        agg = r.aggregate()
-        entry = {"skill_id": r.skill_id, "baseline_found": base is not None,
-                 "regression": False, "notes": []}
-        if base:
-            delta_task = agg["task_pass_rate"] - base.get("task_pass_rate", 0.0)
-            delta_check = agg["checks"]["pass_rate"] - base.get("check_pass_rate", 0.0)
-            entry.update({
-                "task_pass_rate": agg["task_pass_rate"],
-                "task_pass_rate_delta": round(delta_task, 4),
-                "check_pass_rate": agg["checks"]["pass_rate"],
-                "check_pass_rate_delta": round(delta_check, 4),
-            })
-            if delta_task < -max_regression - 1e-9 or delta_check < -max_regression - 1e-9:
-                entry["regression"] = True
-                entry["notes"].append("pass rate dropped more than %.3f" % max_regression)
-            new_failures = []
-            for cid, rate in {k: v["passed"] / v["total"] for k, v in agg["per_check"].items() if v["total"]}.items():
-                before = base.get("per_check", {}).get(cid)
-                if before is not None and rate < before - 1e-9:
-                    new_failures.append("%s: %.2f -> %.2f" % (cid, before, rate))
-            entry["check_regressions"] = new_failures
-            if new_failures:
-                entry["regression"] = True
-        report[r.skill_id] = entry
-    return report
+from .gate import (VERDICT_PASS, VERDICT_REGRESSION, VERDICT_ERROR, baseline_from, compare_to_baseline)
 
 
 def render_markdown(results: list, options, baseline_info: dict | None = None,
@@ -75,7 +28,7 @@ def render_markdown(results: list, options, baseline_info: dict | None = None,
 
     lines.append("## Summary")
     lines.append("")
-    lines.append("| skill | task pass | check pass | judge mean | mean latency | tokens (in/out) | cost | truncated |")
+    lines.append("| skill | mean task checks | check pass | judge mean | mean latency | tokens (in/out) | cost | truncated |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
     for r in results:
         agg = r.aggregate()
@@ -112,6 +65,13 @@ def render_markdown(results: list, options, baseline_info: dict | None = None,
                 agg["checks"]["pass_rate"] - base["checks"]["pass_rate"], dj, dl))
         lines.append("")
 
+    lines.append("## Completion and judging")
+    lines.append("")
+    for r in results:
+        a = r.aggregate()
+        lines.append("- %s: %d/%d scored attempts; task success %.2f; judge errors %d; worker tokens %s; judge tokens %s" % (r.skill_id, a["scored_tasks"], a["tasks"], a["task_success_rate"], len(a["judge_errors"]), a["worker_tokens"], a["judge_tokens"]))
+        lines.append("  Judge criteria: %s" % a["per_judge"])
+    lines.append("")
     lines.append("## Per-check outcome")
     lines.append("")
     check_ids = sorted({c.id for r in results for o in r.outcomes for c in o.checks})
@@ -139,7 +99,7 @@ def render_markdown(results: list, options, baseline_info: dict | None = None,
         lines.append("| --- | --- | --- | --- | --- | --- | --- |")
         for o in r.outcomes:
             lines.append("| `%s` | %d/%d | %s | %.2f s | %s | %s | %s |" % (
-                o.task_id, o.check_summary["passed"], o.check_summary["total"],
+                o.task_id + " #" + str(o.repeat), o.check_summary["passed"], o.check_summary["total"],
                 "-" if not o.judge else ("err" if o.judge.error else "%.2f" % o.judge.mean),
                 o.latency_s,
                 (o.finish_reason or "-") + (" ⚠" if o.truncated else ""),
@@ -158,7 +118,7 @@ def render_markdown(results: list, options, baseline_info: dict | None = None,
                 continue
             lines.append("| `%s` | yes | %+.2f | %+.2f | %s |" % (
                 sid, entry.get("task_pass_rate_delta", 0.0), entry.get("check_pass_rate_delta", 0.0),
-                "; ".join(entry.get("check_regressions", [])) or "none"))
+                "; ".join(entry.get("check_regressions", [])) or entry.get("error") or "; ".join(entry.get("notes", [])) or "none"))
         lines.append("")
 
     lines.append("## Failure evidence")
@@ -167,7 +127,7 @@ def render_markdown(results: list, options, baseline_info: dict | None = None,
     for r in results:
         for o in r.outcomes:
             failed = [c for c in o.checks if not c.passed]
-            if not failed and not o.error:
+            if not failed and not o.error and not o.truncated and not (o.judge and o.judge.error):
                 continue
             shown += 1
             lines.append("<details><summary><code>%s</code> / <code>%s</code></summary>" % (r.skill_id, o.task_id))
@@ -176,6 +136,10 @@ def render_markdown(results: list, options, baseline_info: dict | None = None,
                 lines.append("- `%s` (%s) — %s" % (c.id, c.type, c.detail))
             if o.error:
                 lines.append("- runner error: %s" % o.error)
+            if o.truncated:
+                lines.append("- output truncated; excluded from quality aggregates")
+            if o.judge and o.judge.error:
+                lines.append("- judge error: " + html.escape(o.judge.error))
             if o.judge and o.judge.notes:
                 lines.append("- judge notes: %s" % o.judge.notes)
             snippet = (o.output or "")[:600].replace("```", "ʼʼʼ")
@@ -194,16 +158,18 @@ def render_markdown(results: list, options, baseline_info: dict | None = None,
 def write_outputs(results: list, options, out_dir: str, markdown: str, baseline_info=None,
                   comparison=None, verdict: str = VERDICT_PASS):
     os.makedirs(out_dir, exist_ok=True)
-    stamp = results[0].started_at.replace(":", "").replace("-", "").replace(" ", "-") if results else "run"
+    stamp = uuid.uuid4().hex
     md_path = os.path.join(out_dir, "report-%s.md" % stamp)
     json_path = os.path.join(out_dir, "report-%s.json" % stamp)
     with open(md_path, "w", encoding="utf-8") as fh:
         fh.write(markdown)
     payload = {
+        "schema_version": 2,
         "verdict": verdict,
         "options": {k: v for k, v in vars(options).items() if k != "api_key"},
         "results": [r.as_dict() for r in results],
         "baseline_comparison": comparison,
+        "baseline_candidate": baseline_from(results) if verdict == VERDICT_PASS else None,
     }
     with open(json_path, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False, indent=2)

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.0 — 2026-09-15
+
+- Fail closed on partial execution errors, truncation, missing/incompatible baselines and invalid judging.
+- Add baseline schema 2, explicit cross-version mapping and reviewed baseline promotion.
+- Validate suites before execution; add strict JSON, JSON Schema and typed path assertions.
+- Execute repeats; report complete-task success and separate worker/judge usage and costs.
+- Add experimental native Codex, Claude Code, Gemini CLI and Cursor adapters with subprocess tests.
+- Add doc-to-actions v2.1 and six synthetic boundary cases; retain historical versions and reports.
+- Distinguish offline harness CI from opt-in trusted live behavior checks.
+- Version jump from package 0.1.0 is intentional; see docs/RELEASE-v2.1.0.md for migration.
+
 All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [SemVer](https://semver.org/).
