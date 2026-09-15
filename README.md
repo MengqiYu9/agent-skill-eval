@@ -43,7 +43,7 @@ and invalid judges return exit code 2. Old baselines require explicit compatibil
   optional rubric-based **LLM judge** for qualities a regex cannot express.
 - **A/B between two skill versions** on the same task set, with per-check and per-task
   breakdowns — not just one mean.
-- **Baseline gating.** `--baseline baseline.json --allow-legacy-baseline --max-regression 0.0` exits non-zero when
+- **Baseline gating.** `--baseline baseline.json --max-regression 0.0` exits non-zero when
   a check or the pass rate drops. Suitable as a CI gate.
 - **Failure evidence in the report.** Every failed check prints its reason; failing outputs
   are attached, truncated. A red build tells you what to look at.
@@ -55,34 +55,112 @@ and invalid judges return exit code 2. Old baselines require explicit compatibil
 
 ## Quick start
 
-```bash
-git clone <this repo> && cd agent-skill-eval
+Commands below run from the repository root after installation. Each command is on one
+line so it can be pasted into Windows CMD, PowerShell or a POSIX shell.
 
-# 1) offline: no API key, no money. Runs the pipeline, checks and report end to end.
-PYTHONPATH=src python -m skilleval run \
-  --suite tasks \
-  --skill skills/structured-digest/v1 --skill skills/structured-digest/v2 \
-  --runner mock --mock-outputs examples/mock_outputs.json --no-judge \
-  --baseline examples/baseline.mock.v2.1.json --max-regression 0.0
-
-# 2) dry run: does the suite parse, what will it execute?
-PYTHONPATH=src python -m skilleval validate --suite tasks --skill skills/structured-digest/v2
-
-# 3) live, with the judge
-export SKILLEVAL_API_KEY=...            # or --env-file path/to/.env
-PYTHONPATH=src python -m skilleval run \
-  --suite tasks \
-  --skill skills/structured-digest/v1 --skill skills/structured-digest/v2 \
-  --model deepseek-flash --max-tokens 8192 \
-  --baseline baseline.json --allow-legacy-baseline --max-regression 0.0 \
-  --out reports
-
-# tests
-PYTHONPATH=src python -m unittest discover -s tests -t .     # offline harness and native contract tests
+```text
+git clone https://github.com/MengqiYu9/agent-skill-eval.git
+cd agent-skill-eval
+python -m pip install -e ".[dev]"
 ```
 
-Exit codes: `0` pass · `1` regression / below `--fail-under` · `2` pipeline error.
-Installable as a package too: `pip install -e .` then `skilleval ...`.
+### 1. Validate and run offline
+
+```text
+skilleval validate --suite suites/doc-to-actions-v2.1 --skill skills/doc-to-actions/v2.1
+skilleval run --suite suites/doc-to-actions-v2.1 --skill skills/doc-to-actions/v2.1 --runner mock --mock-outputs examples/mock-doc-to-actions-v2.1.json --no-judge --out reports
+```
+
+This replays recorded answers to verify checks and reporting. It does not execute a model
+or prove that the skill improves its behavior.
+
+### 2. Run a real API evaluation
+
+Set `SKILLEVAL_API_KEY` in your shell, or pass `--env-file path/to/.env`. Supply your
+compatible Chat Completions endpoint and available model names:
+
+```text
+skilleval run --suite suites/doc-to-actions-v2.1 --skill skills/doc-to-actions/v2.1 --base-url https://YOUR-ENDPOINT/v1 --model YOUR-WORKER-MODEL --judge-model YOUR-JUDGE-MODEL --max-tokens 8192 --judge-fail-under 4 --out reports
+```
+
+Replace the endpoint/model placeholders. Judging is enabled by default; there is no
+`--judge` flag. Use `--no-judge` for checks only. The first run needs no baseline and
+defaults to requiring every check to pass. Review a PASS report before accepting its
+baseline using the workflow below.
+
+### 3. Replay the historical A/B demo
+
+```text
+skilleval run --suite tasks --skill skills/structured-digest/v1 --skill skills/structured-digest/v2 --runner mock --mock-outputs examples/mock_outputs.json --no-judge --baseline examples/baseline.mock.json --allow-legacy-baseline --max-regression 0.0
+```
+
+### 4. Run offline tests
+
+```text
+python -m unittest discover -s tests -t .
+```
+
+Exit codes: `0` pass · `1` quality/budget regression · `2` execution/comparison error.
+
+## How it works
+
+```mermaid
+flowchart LR
+    A[Skill + task suite] --> B[Validate specifications]
+    B --> C[API / mock / native runner]
+    C --> D[Deterministic checks]
+    C --> E[Optional API judge]
+    D --> F[Aggregate evidence]
+    E --> F
+    F --> G[Baseline + quality + budget gate]
+    G --> H[JSON / Markdown report + exit code]
+```
+
+- **API execution** sends skill instructions and task input to a compatible model endpoint.
+- **Native execution** stages the full skill package and task files, then invokes an installed CLI.
+- **Checks** verify output contracts; the judge scores semantic rubric criteria from task evidence.
+- **Fail-closed gating** returns ERROR for incomplete execution, truncation, invalid judging or
+  incompatible baselines, even if the remaining scored outputs look good.
+- **Repeatability** comes from recorded suite/config/skill hashes and per-attempt evidence.
+  `--repeats N` repeats each task; it does not make model generation deterministic.
+
+`task_pass_rate` is the mean check fraction per scored attempt; `task_success_rate` is
+the fraction of scored attempts passing every check. Incomplete attempts are excluded
+from quality aggregates but still block the gate. Inspect `tasks` and `scored_tasks` too.
+
+## Native agent platforms (experimental)
+
+Install and authenticate the chosen CLI before running. These examples use checks only:
+
+```text
+skilleval run --runner codex --suite suites/doc-to-actions-v2.1 --skill skills/doc-to-actions/v2.1 --no-judge
+skilleval run --runner claude --suite suites/doc-to-actions-v2.1 --skill skills/doc-to-actions/v2.1 --no-judge
+skilleval run --runner gemini --suite suites/doc-to-actions-v2.1 --skill skills/doc-to-actions/v2.1 --no-judge
+skilleval run --runner cursor --suite suites/doc-to-actions-v2.1 --skill skills/doc-to-actions/v2.1 --no-judge
+```
+
+| Runner | Default executable | Staged skill directory |
+| --- | --- | --- |
+| `codex` | `codex` | `.agents/skills/<name>` |
+| `claude` | `claude` | `.claude/skills/<name>` |
+| `gemini` | `gemini` | `.gemini/skills/<name>` |
+| `cursor` | `agent` | `.cursor/skills/<name>` |
+
+Use `--agent-command` for an executable path and `--agent-arg=VALUE` for extra arguments.
+Windows `.cmd`/`.bat` shims are rejected; use a native executable wrapper or WSL.
+Native models use the platform default when `--model` is omitted. To enable semantic
+judging, remove `--no-judge` and configure `--judge-model` plus the API endpoint/key.
+
+`--invocation explicit` requests the named skill; `implicit` sends only the task.
+`--no-skill --compare-first` adds an unskilled control and gates later arms against it.
+A good answer alone does not prove skill activation: inspect recorded events.
+
+Each attempt gets a fresh directory, but inherits user configuration and authentication.
+Use an isolated CI environment for untrusted tasks. Native adapters have offline contract
+tests; authenticated platform runs have not been certified. See the
+[release guide](docs/RELEASE-v2.1.0.md#native-platforms-experimental) for file fixtures,
+artifact checks and execution limits.
+
 
 ## Historical measurements (before v2.1.0)
 
@@ -107,7 +185,7 @@ Raw reports: [`examples/report-live-8192.md`](examples/report-live-8192.md) ·
 [offline mock run](examples/report-offline-mock.md) ·
 [the truncation run that looked like a regression](examples/report-live-2048-truncated.md).
 
-## Case study: a real shipped skill, not a demo
+## Historical case study: a shipped skill (before v2.1.0)
 
 The suite above is a demo I wrote to exercise the harness. `suites/doc-to-actions/` is the
 point of the repo: it evaluates **`document-to-action-items`**, a skill that is actually
@@ -200,11 +278,15 @@ src/skilleval/
   runner.py    OpenAI-compatible + mock runners, truncation/empty-content diagnostics
   suite.py     skill + task loading, one run = skill × tasks, aggregation
   report.py    markdown/JSON rendering, baseline diff, regression verdict
-  cli.py       run / validate / init
+  gate.py      versioned baseline comparison and fail-closed verdicts
+  native.py    experimental Codex / Claude / Gemini / Cursor adapters
+  cli.py       run / validate / init / accept-baseline
 skills/structured-digest/{v1,v2}/SKILL.md   starter example: loose prose → strict contract
 tasks/digest-0*.yaml                        starter suite (4 tasks, 12 checks)
 skills/doc-to-actions/{v1,v2}/SKILL.md      the real thing: a shipped skill vs its strict version
+skills/doc-to-actions/v2.1/SKILL.md         evidence, uncertainty and boundary handling
 suites/doc-to-actions/*.yaml                its suite (4 synthetic documents, 14 checks)
+suites/doc-to-actions-v2.1/edges.json        six synthetic boundary cases
 tests/                                      offline regression and native contract tests
 examples/                                   committed reports + mock fixtures + baseline
 docs/DESIGN-NOTES.md                        what broke for real, with numbers
@@ -214,7 +296,7 @@ docs/notes/                                 longer write-ups
 
 ## Baseline promotion
 
-After reviewing a successful v2 report, accept its candidate baseline:
+After reviewing a PASS report with report schema version 2, accept its candidate baseline:
 
 ```bash
 skilleval accept-baseline --report reports/report-<id>.json --out baseline.local.json
@@ -223,6 +305,12 @@ skilleval accept-baseline --report reports/report-<id>.json --out baseline.local
 Use `--replace` only for an intentional baseline update. `--save-baseline` is kept as
 a create-only shortcut and refuses failed runs and existing paths. For cross-version
 comparison, pass one candidate with `--baseline-skill my-skill/v1`. See the migration guide.
+
+New baselines verify suite/configuration fingerprints and task/check coverage. Keep the
+same suite, model, judge settings, runtime and repeats when comparing skill changes.
+Intentional changes to those settings need a newly reviewed baseline. The skill hash is
+recorded for traceability and may change: changing the skill is what this comparison tests.
+Use `--allow-legacy-baseline` only for historical baselines without fingerprints.
 
 ## Adding your own
 
@@ -239,8 +327,12 @@ skilleval run --suite tasks --skill skills/my-skill/v2 \
 
 Worker and judge tokens are reported separately and together per arm; prices are not guessed. Pass
 `--prices prices.json` — `{"default": {"input_per_mtok": 0.14, "output_per_mtok": 0.28}}`
-— to add a cost column. A 4-task, 2-arm run like the one above is ~22 k tokens total.
+— to add a cost column. These are example prices, not a current provider quote.
+`--max-cost` limits total USD per skill arm, including judging; `--max-latency` limits
+total elapsed seconds per arm, not mean task latency. Unknown native usage or unsupported
+cache pricing produces unknown cost; a required cost gate then returns ERROR.
 
 ## License
 
 MIT.
+
